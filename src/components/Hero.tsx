@@ -30,7 +30,7 @@ const Hero = () => {
       // Send email using EmailJS
       const templateParams = {
         to_email: email,
-        extension_link: 'https://chrome.google.com/webstore/detail/agentic-browser-use/your-extension-id',
+        extension_link: 'https://chrome.google.com/webstore/detail/agentic-browser/jhdchfkgagokfbbhmomopcidkjnlieoc',
       };
 
       await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
@@ -76,7 +76,7 @@ const Hero = () => {
             size="lg" 
             className="bg-gradient-to-r from-agentic-purple to-agentic-blue hover:opacity-90 text-white px-8 py-6 text-lg"
           >
-            <a href="https://chrome.google.com/webstore/detail/agentic-browser-use/your-extension-id" target="_blank" rel="noopener noreferrer">
+            <a href="https://chrome.google.com/webstore/detail/agentic-browser/jhdchfkgagokfbbhmomopcidkjnlieoc" target="_blank" rel="noopener noreferrer">
               Install Free Extension
             </a>
           </Button>

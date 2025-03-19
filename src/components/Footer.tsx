@@ -19,7 +19,7 @@ const Footer = () => {
             <a href="#use-cases" className="text-white/70 hover:text-white transition-colors">Use Cases</a>
             <a href="#how-it-works" className="text-white/70 hover:text-white transition-colors">How It Works</a>
             <a 
-              href="https://chrome.google.com/webstore/detail/agentic-browser-use/your-extension-id" 
+              href="https://chrome.google.com/webstore/detail/agentic-browser/jhdchfkgagokfbbhmomopcidkjnlieoc" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-agentic-purple hover:text-agentic-blue transition-colors"

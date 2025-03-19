@@ -40,7 +40,7 @@ const Navbar = () => {
           <a href="#use-cases" className="text-white/80 hover:text-white transition-colors">Use Cases</a>
           <a href="#how-it-works" className="text-white/80 hover:text-white transition-colors">How It Works</a>
           <Button asChild className="bg-gradient-to-r from-agentic-purple to-agentic-blue hover:opacity-90 text-white">
-            <a href="https://chrome.google.com/webstore/detail/agentic-browser-use/your-extension-id" target="_blank" rel="noopener noreferrer">
+            <a href="https://chrome.google.com/webstore/detail/agentic-browser/jhdchfkgagokfbbhmomopcidkjnlieoc" target="_blank" rel="noopener noreferrer">
               Install Now
             </a>
           </Button>
@@ -86,7 +86,7 @@ const Navbar = () => {
               className="w-full bg-gradient-to-r from-agentic-purple to-agentic-blue hover:opacity-90 text-white"
             >
               <a 
-                href="https://chrome.google.com/webstore/detail/agentic-browser-use/your-extension-id" 
+                href="https://chrome.google.com/webstore/detail/agentic-browser/jhdchfkgagokfbbhmomopcidkjnlieoc" 
                 target="_blank" 
                 rel="noopener noreferrer"
               >

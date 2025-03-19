@@ -52,7 +52,7 @@ const HowItWorks = () => {
             Ready to experience the power of AI-powered browsing? Install Agentic Browser today and revolutionize how you interact with the web.
           </p>
           <a 
-            href="https://chrome.google.com/webstore/detail/agentic-browser-use/your-extension-id" 
+            href="https://chrome.google.com/webstore/detail/agentic-browser/jhdchfkgagokfbbhmomopcidkjnlieoc" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-agentic-purple to-agentic-blue hover:opacity-90 text-white px-8 py-3 rounded-md font-medium transition-all"
