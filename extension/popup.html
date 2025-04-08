@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic Browser</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      width: 350px;
+      min-height: 400px;
+      background-color: #0A0C14;
+      color: white;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .hidden {
+      display: none;
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="p-4">
+  <!-- Logo and Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center">
+      <img src="icons/icon48.png" alt="Logo" class="w-8 h-8 mr-2">
+      <h1 class="text-xl font-bold">Agentic Browser</h1>
+    </div>
+    <div id="credits-display" class="text-sm hidden">
+      <span class="text-gray-400">Credits:</span>
+      <span id="credits-count" class="font-medium ml-1">0</span>
+    </div>
+  </div>
+
+  <!-- Login State -->
+  <div id="login-state" class="flex flex-col h-[320px]">
+    <div id="logged-out-view" class="flex flex-col items-center justify-center h-full">
+      <p class="text-gray-400 text-center mb-6">Sign in to access AI models and use your credits</p>
+      <button id="login-button" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors">
+        Sign In
+      </button>
+    </div>
+
+    <div id="logged-in-view" class="hidden flex-col h-full">
+      <!-- User info -->
+      <div class="mb-4 p-3 bg-gray-800 rounded-lg">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-sm text-gray-400">Signed in as</p>
+            <p id="user-email" class="font-medium"></p>
+          </div>
+          <button id="logout-button" class="text-sm text-gray-400 hover:text-white">
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat interface -->
+      <div class="flex-grow flex flex-col mb-4 h-[200px]">
+        <div id="chat-messages" class="flex-grow overflow-y-auto mb-2 p-2 bg-gray-800 rounded-lg text-sm">
+          <p class="text-gray-400 italic">Ask a question to get started...</p>
+        </div>
+        <div class="flex">
+          <input 
+            id="prompt-input" 
+            type="text" 
+            placeholder="Type your question..." 
+            class="flex-grow p-2 text-sm bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-white"
+          >
+          <button 
+            id="send-button" 
+            class="ml-2 p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex justify-between">
+        <button id="buy-credits-button" class="py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded transition-colors text-sm">
+          Buy Credits
+        </button>
+        <button id="dashboard-button" class="py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded transition-colors text-sm">
+          Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

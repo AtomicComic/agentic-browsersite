@@ -49,14 +49,12 @@ const Navbar = () => {
               isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
             }`}>Get Started</a>
           </nav>
-        </div>
-
-        {/* Right side buttons */}
+        </div>        {/* Right side buttons */}
         <div className="hidden md:flex items-center gap-4">
           <Button variant="ghost" className={`text-sm font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
             isScrolled ? 'text-white hover:bg-white/10' : 'text-white hover:bg-white/10'
           }`}>
-            Log in
+            <a href="/login">Log in</a>
           </Button>
           <Button className={`bg-[#66B3FF] hover:bg-[#66B3FF]/90 text-sm font-normal rounded-none font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
             isScrolled ? 'text-[#0A0C14]' : 'text-white'
@@ -101,10 +99,9 @@ const Navbar = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Get Started
-            </a>
-            <div className="flex flex-col gap-2 pt-2">
+            </a>            <div className="flex flex-col gap-2 pt-2">
               <Button variant="ghost" className="justify-start text-white hover:bg-white/10 font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']">
-                Log in
+                <a href="/login">Log in</a>
               </Button>
               <Button 
                 className="justify-start bg-[#66B3FF] hover:bg-[#66B3FF]/90 text-[#0A0C14] font-normal rounded-none font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"

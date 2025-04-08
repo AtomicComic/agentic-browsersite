@@ -5,7 +5,7 @@ import landingPageBackground from '../assets/landingpage_background.mp4';
 
 const Hero = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -76,13 +76,13 @@ const Hero = () => {
           >
             Agentic browser transforms your workflow by enabling AI to autonomously control your browser and execute tasks effortlessly. Built for seamless productivity through intelligent automation, it empowers you to focus on what truly matters.
           </motion.p>
-          
+
           {/* Down arrow - with more vertical spacing and proper centering */}
           <motion.div
             className="mt-32 flex justify-center cursor-pointer"
             initial={{ y: 0 }}
             animate={{ y: [0, 12, 0] }}
-            transition={{ 
+            transition={{
               duration: 3,
               ease: "easeInOut",
               repeat: Infinity,
