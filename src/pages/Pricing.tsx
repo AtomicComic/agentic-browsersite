@@ -128,10 +128,8 @@ const Pricing = () => {
 
     try {
       // Get ID token for authentication
-      const idToken = await currentUser.getIdToken();
-      
-      // Call backend to create Stripe checkout session
-      const response = await fetch('/api/create-checkout-session', {
+      const idToken = await currentUser.getIdToken();      // Call backend to create Stripe checkout session
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/createCheckoutSession`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,7 +144,7 @@ const Pricing = () => {
       });
 
       const { url } = await response.json();
-      
+
       // Redirect to Stripe Checkout
       window.location.href = url;
     } catch (error) {
@@ -165,7 +163,7 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-[#0A0C14] text-white">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold">Pricing Plans</h1>
@@ -173,9 +171,9 @@ const Pricing = () => {
             Choose the plan that works best for you
           </p>
         </div>
-        
-        <Tabs 
-          defaultValue="subscription" 
+
+        <Tabs
+          defaultValue="subscription"
           value={selectedTab}
           onValueChange={setSelectedTab}
           className="w-full max-w-3xl mx-auto"
@@ -184,12 +182,12 @@ const Pricing = () => {
             <TabsTrigger value="subscription">Monthly Subscription</TabsTrigger>
             <TabsTrigger value="one-time">One-time Purchase</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="subscription">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {subscriptionPlans.map((plan) => (
-                <Card 
-                  key={plan.id} 
+                <Card
+                  key={plan.id}
                   className={`border ${plan.popular ? 'border-blue-500' : 'border-gray-700'} bg-gray-800`}
                 >
                   <CardHeader>
@@ -218,7 +216,7 @@ const Pricing = () => {
                     </ul>
                   </CardContent>
                   <CardFooter>
-                    <Button 
+                    <Button
                       className={`w-full ${plan.popular ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
                       onClick={() => handlePurchase(plan.id, true)}
                     >
@@ -229,12 +227,12 @@ const Pricing = () => {
               ))}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="one-time">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {oneTimePlans.map((plan) => (
-                <Card 
-                  key={plan.id} 
+                <Card
+                  key={plan.id}
                   className={`border ${plan.popular ? 'border-blue-500' : 'border-gray-700'} bg-gray-800`}
                 >
                   <CardHeader>
@@ -263,7 +261,7 @@ const Pricing = () => {
                     </ul>
                   </CardContent>
                   <CardFooter>
-                    <Button 
+                    <Button
                       className={`w-full ${plan.popular ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
                       onClick={() => handlePurchase(plan.id, false)}
                     >
@@ -275,7 +273,7 @@ const Pricing = () => {
             </div>
           </TabsContent>
         </Tabs>
-        
+
         <div className="mt-12 text-center text-gray-400 max-w-2xl mx-auto">
           <h3 className="text-xl font-semibold text-white mb-4">How Credits Work</h3>
           <p className="mb-4">
@@ -286,7 +284,7 @@ const Pricing = () => {
           </p>
         </div>
       </div>
-      
+
       <Footer />
     </div>
   );

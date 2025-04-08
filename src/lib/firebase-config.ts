@@ -24,6 +24,24 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
 const googleProvider = new GoogleAuthProvider();
+
+// Connect to emulators in development
+if (window.location.hostname === 'localhost') {
+  import('firebase/firestore').then(({ connectFirestoreEmulator }) => {
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log('Connected to Firestore emulator');
+  });
+  
+  import('firebase/functions').then(({ connectFunctionsEmulator }) => {
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    console.log('Connected to Functions emulator');
+  });
+  
+  import('firebase/auth').then(({ connectAuthEmulator }) => {
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    console.log('Connected to Auth emulator');
+  });
+}
 // Add scopes for Google provider
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');

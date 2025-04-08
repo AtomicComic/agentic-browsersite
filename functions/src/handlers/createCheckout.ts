@@ -1,21 +1,15 @@
 import { Request, Response } from 'express';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
+import { config } from '../config';
 
 // Initialize Stripe with your secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = new Stripe(config.stripe.secretKey || '', {
   apiVersion: '2023-10-16',
 });
 
-// Price IDs from Stripe Dashboard - replace with your actual price IDs
-const PRICE_IDS: Record<string, string> = {
-  'monthly-basic': 'price_xxxx',     // $8.99 for 1000 credits
-  'monthly-pro': 'price_xxxx',       // $14.99 for 2000 credits
-  'monthly-enterprise': 'price_xxxx', // $24.99 for 3000 credits
-  'credits-1500': 'price_xxxx',      // $14.99 for 1500 one-time credits
-  'credits-6000': 'price_xxxx',      // $49.99 for 6000 one-time credits
-  'credits-15000': 'price_xxxx',     // $99.99 for 15000 one-time credits
-};
+// Price IDs from Stripe Dashboard
+const PRICE_IDS = config.stripe.priceIds;
 
 export async function createCheckoutSession(req: Request, res: Response) {
   try {
@@ -33,7 +27,7 @@ export async function createCheckoutSession(req: Request, res: Response) {
       const { planId, isSubscription, successUrl, cancelUrl } = req.body;
 
       // Validate plan ID
-      if (!PRICE_IDS[planId]) {
+      if (!PRICE_IDS[planId as keyof typeof PRICE_IDS]) {
         return res.status(400).json({ error: 'Invalid plan ID' });
       }
 
@@ -62,7 +56,7 @@ export async function createCheckoutSession(req: Request, res: Response) {
         payment_method_types: ['card'],
         line_items: [
           {
-            price: PRICE_IDS[planId],
+            price: PRICE_IDS[planId as keyof typeof PRICE_IDS],
             quantity: 1,
           },
         ],
