@@ -11,37 +11,37 @@ import {
 import { motion } from 'framer-motion';
 
 const features = [
-  {
-    icon: <Cpu className="w-8 h-8 text-[#66B3FF]" />,
-    title: "Multiple AI Models",
-    description: "Works with GPT-4o, Claude, Gemini, DeepSeek, and more powerful vision-capable AI models."
-  },
-  {
-    icon: <Globe className="w-8 h-8 text-[#66B3FF]" />,
-    title: "Browser Integration",
-    description: "Control your browser directly with natural language commands without switching between apps."
-  },
-  {
-    icon: <Lock className="w-8 h-8 text-[#66B3FF]" />,
-    title: "Privacy-First",
-    description: "Your API keys stay local, and no data is stored on our servers - complete privacy guaranteed."
-  },
-  {
-    icon: <Rocket className="w-8 h-8 text-[#66B3FF]" />,
-    title: "Automation",
-    description: "Let AI handle repetitive tasks like filling forms, writing emails, and generating content."
-  },
-  {
-    icon: <Code className="w-8 h-8 text-[#66B3FF]" />,
-    title: "Image Analysis",
-    description: "Extract text from images, analyze screenshots, and generate captions effortlessly."
-  },
-  {
-    icon: <Cloud className="w-8 h-8 text-[#66B3FF]" />,
-    title: "100% FREE",
-    description: "Use your own API keys with no hidden fees, subscriptions, or usage limits."
-  }
-];
+    {
+      icon: <Cpu className="w-8 h-8 text-[#66B3FF]" />,
+      title: "Powerful AI Integration",
+      description: "Leverage GPT-4o, Claude, Gemini, DeepSeek, and more directly within your browser."
+    },
+    {
+      icon: <Globe className="w-8 h-8 text-[#66B3FF]" />,
+      title: "Natural Browser Control",
+      description: "Use simple language commands to automate browsing tasks without switching apps."
+    },
+    {
+      icon: <Lock className="w-8 h-8 text-[#66B3FF]" />,
+      title: "Complete Data Privacy",
+      description: "All browsing automation happens locally, ensuring your data remains private and secure."
+    },
+    {
+      icon: <Rocket className="w-8 h-8 text-[#66B3FF]" />,
+      title: "Intelligent Task Automation",
+      description: "Effortlessly handle repetitive tasks like form-filling, content creation, and data entry."
+    },
+    {
+      icon: <Cloud className="w-8 h-8 text-[#66B3FF]" />,
+      title: "Flexible API Access",
+      description: "Use your own API keys or easily obtain one via OpenRouter, maintaining full control."
+    },
+    {
+      icon: <Code className="w-8 h-8 text-[#66B3FF]" />,
+      title: "Robust Workflow Management",
+      description: "Optimized task planning and error recovery ensures reliability and consistent performance."
+    }
+  ];
 
 const Features = () => {
   const containerVariants = {

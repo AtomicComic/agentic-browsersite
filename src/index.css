@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -74,6 +73,37 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Video transition animations */
+@keyframes videoFade {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.video-reverse-transition {
+  animation: videoFade 0.5s ease-in-out;
+}
+
+/* Seamless video looping effects */
+@keyframes fadeTransition {
+  0% { opacity: 1; }
+  50% { opacity: 0.85; }
+  100% { opacity: 1; }
+}
+
+.video-container {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.video-fade-out {
+  opacity: 0.9;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.video-transition {
+  animation: fadeTransition 0.3s ease-in-out;
 }
 
 /* Custom keyframes */

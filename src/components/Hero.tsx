@@ -1,10 +1,11 @@
-
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import landingPageBackground from '../assets/landingpage_background.mp4';
 
 const Hero = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -38,16 +39,19 @@ const Hero = () => {
     <section className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
       {/* Video Background */}
       <div className="absolute inset-0 w-full h-full z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="object-cover w-full h-full"
-        >
-          <source src={landingPageBackground} type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
+        <div className="relative w-full h-full video-container">
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            loop
+            className="object-cover w-full h-full"
+          >
+            <source src={landingPageBackground} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
         {/* Overlay to ensure text readability */}
         <div className="absolute inset-0 bg-black/40 z-10"></div>
       </div>
@@ -63,27 +67,32 @@ const Hero = () => {
             className="text-6xl md:text-7xl lg:text-8xl font-light mb-10 text-white leading-tight tracking-tight font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
             variants={itemVariants}
           >
-            Pioneering the future of browser control
+            Agentic AI Automation Directly in Your Browser
           </motion.h1>
 
           <motion.p
             className="text-white/90 text-xl max-w-2xl mx-auto mb-12 font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
             variants={itemVariants}
           >
-            At Agentic Browser, we see AI as the future of internet exploration —
-            built to accelerate workflow, anchored in security for everyone.
+            Agentic browser transforms your workflow by enabling AI to autonomously control your browser and execute tasks effortlessly. Built for seamless productivity through intelligent automation, it empowers you to focus on what truly matters.
           </motion.p>
-        </motion.div>
-
-        {/* Down arrow */}
-        <motion.div
-          className="absolute bottom-12 left-1/2 -translate-x-1/2 cursor-pointer"
-          initial={{ y: 0 }}
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          onClick={scrollToNextSection}
-        >
-          <ChevronDown size={36} className="text-white/70 hover:text-white transition-colors" />
+          
+          {/* Down arrow - with more vertical spacing and proper centering */}
+          <motion.div
+            className="mt-32 flex justify-center cursor-pointer"
+            initial={{ y: 0 }}
+            animate={{ y: [0, 12, 0] }}
+            transition={{ 
+              duration: 3,
+              ease: "easeInOut",
+              repeat: Infinity,
+              repeatType: "loop"
+            }}
+            onClick={scrollToNextSection}
+            variants={itemVariants}
+          >
+            <ChevronDown size={36} className="text-white/70 hover:text-white transition-colors" />
+          </motion.div>
         </motion.div>
       </div>
     </section>
