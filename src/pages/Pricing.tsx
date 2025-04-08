@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
+import { functions } from '@/lib/firebase-config'; // Import the initialized functions instance
+import { httpsCallable } from 'firebase/functions'; // Keep httpsCallable import
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -127,28 +129,44 @@ const Pricing = () => {
     }
 
     try {
-      // Get ID token for authentication
-      const idToken = await currentUser.getIdToken();      // Call backend to create Stripe checkout session
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/createCheckoutSession`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({
-          planId,
-          isSubscription,
-          successUrl: `${window.location.origin}/dashboard?checkout=success`,
-          cancelUrl: `${window.location.origin}/pricing?checkout=canceled`,
-        }),
-      });
+      console.log('Starting checkout process for plan:', planId, 'isSubscription:', isSubscription);
 
-      const { url } = await response.json();
+      // Firebase functions instance is already initialized and connected to emulator in firebase-config.ts
+      // We just need the httpsCallable function itself
+
+      // Create a callable function reference using the imported functions instance
+      const createCheckoutSessionCallable = httpsCallable(functions, 'createCheckoutSession');
+
+      // Prepare the request data
+      const requestData = {
+        planId,
+        isSubscription,
+        successUrl: `${window.location.origin}/dashboard?checkout=success`,
+        cancelUrl: `${window.location.origin}/pricing?checkout=canceled`,
+      };
+
+      console.log('Calling createCheckoutSession callable with data:', requestData);
+
+      // Call the function
+      const result = await createCheckoutSessionCallable(requestData);
+
+      console.log('Received result from createCheckoutSession:', result);
+
+      // The result data will contain the URL from your function
+      const { url } = result.data as { url: string };
+
+      if (!url) {
+        console.error('No URL returned from checkout session');
+        return;
+      }
+
+      console.log('Redirecting to Stripe checkout URL:', url);
 
       // Redirect to Stripe Checkout
       window.location.href = url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
+      // You could add a toast notification or alert here
     }
   };
 

@@ -27,16 +27,20 @@ const googleProvider = new GoogleAuthProvider();
 
 // Connect to emulators in development
 if (window.location.hostname === 'localhost') {
+  console.log('Running in development mode - connecting to Firebase emulators');
+  // Connect to Firestore emulator
   import('firebase/firestore').then(({ connectFirestoreEmulator }) => {
-    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectFirestoreEmulator(db, 'localhost', 8090);
     console.log('Connected to Firestore emulator');
   });
-  
+
+  // Connect to Functions emulator
   import('firebase/functions').then(({ connectFunctionsEmulator }) => {
     connectFunctionsEmulator(functions, 'localhost', 5001);
-    console.log('Connected to Functions emulator');
+    console.log('Connected to Functions emulator at localhost:5001');
   });
-  
+
+  // Connect to Auth emulator
   import('firebase/auth').then(({ connectAuthEmulator }) => {
     connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
     console.log('Connected to Auth emulator');

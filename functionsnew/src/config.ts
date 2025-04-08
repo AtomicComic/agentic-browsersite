@@ -5,11 +5,19 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '../.env.local' });
 dotenv.config({ path: '../.env' });
 
+// Check if running in emulator
+const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+console.log(`Running in ${isEmulator ? 'EMULATOR' : 'PRODUCTION'} mode`);
+if (isEmulator) {
+  console.log('Using emulator configuration');
+}
+
 // Environment configuration
 export const config = {
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || functions.config().stripe?.secret_key,
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret,    priceIds: {
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret,
+    priceIds: {
       'monthly-basic': process.env.STRIPE_PRICE_MONTHLY_BASIC || 'price_xxxx',
       'monthly-premium': process.env.STRIPE_PRICE_MONTHLY_PREMIUM || 'price_xxxx',
       'monthly-pro': process.env.STRIPE_PRICE_MONTHLY_PRO || 'price_xxxx',
@@ -24,5 +32,5 @@ export const config = {
   openRouter: {
     provisioningKey: process.env.OPENROUTER_PROVISIONING_KEY
   },
-  isEmulator: process.env.FUNCTIONS_EMULATOR === 'true'
+  isEmulator
 };

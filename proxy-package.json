@@ -1,0 +1,14 @@
+{
+  "name": "firebase-proxy",
+  "version": "1.0.0",
+  "description": "A simple proxy server for Firebase Functions",
+  "main": "proxy-server.js",
+  "scripts": {
+    "start": "node proxy-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "http-proxy-middleware": "^2.0.6"
+  }
+}
