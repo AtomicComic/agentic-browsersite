@@ -1,44 +1,37 @@
 
 import React from 'react';
+import { Github, Twitter, Linkedin } from 'lucide-react';
 import Logo from '../assets/Logo';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="bg-agentic-dark/80 border-t border-white/10 py-10">
+    <footer className="bg-white border-t border-[#f0f0f0] py-8">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <Logo className="w-6 h-6" />
-            <span className="font-bold text-lg text-white">Agentic Browser</span>
+          <div className="flex items-center gap-3 mb-4 md:mb-0">
+            <Logo className="w-8 h-8" />
+            <span className="text-[#333333] font-medium">Agentic Browser</span>
           </div>
           
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-            <a href="#features" className="text-white/70 hover:text-white transition-colors">Features</a>
-            <a href="#use-cases" className="text-white/70 hover:text-white transition-colors">Use Cases</a>
-            <a href="#how-it-works" className="text-white/70 hover:text-white transition-colors">How It Works</a>
-            <a 
-              href="https://chrome.google.com/webstore/detail/agentic-browser/jhdchfkgagokfbbhmomopcidkjnlieoc" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-agentic-purple hover:text-agentic-blue transition-colors"
-            >
-              Install Now
+          <div className="flex items-center gap-6">
+            <a href="#" className="text-[#333333]/40 hover:text-[#66B3FF] transition-colors">
+              <Github size={18} />
+            </a>
+            <a href="#" className="text-[#333333]/40 hover:text-[#66B3FF] transition-colors">
+              <Twitter size={18} />
+            </a>
+            <a href="#" className="text-[#333333]/40 hover:text-[#66B3FF] transition-colors">
+              <Linkedin size={18} />
             </a>
           </div>
         </div>
         
-        <div className="border-t border-white/10 mt-6 pt-6 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-white/50 text-sm">
+        <div className="border-t border-[#f0f0f0] mt-6 pt-6 text-center md:text-left">
+          <p className="text-[#333333]/40 text-sm font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']">
             © {currentYear} Agentic Browser. All rights reserved.
           </p>
-          
-          <div className="flex gap-6 mt-4 md:mt-0">
-            <a href="#" className="text-white/50 hover:text-white transition-colors text-sm">Privacy Policy</a>
-            <a href="#" className="text-white/50 hover:text-white transition-colors text-sm">Terms of Service</a>
-            <a href="#" className="text-white/50 hover:text-white transition-colors text-sm">Contact</a>
-          </div>
         </div>
       </div>
     </footer>

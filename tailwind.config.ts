@@ -19,6 +19,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'system-ui', 'sans-serif'],
+				display: ['Inter', 'system-ui', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -53,20 +57,11 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
-				},
 				agentic: {
 					purple: '#9b87f5',
 					blue: '#0EA5E9',
-					dark: '#1A1F2C',
+					dark: '#0A0C14',
+					darker: '#07080e',
 					light: '#F1F0FB',
 					vivid: '#8B5CF6',
 				}
@@ -102,6 +97,15 @@ export default {
 						'background-size': '200% 200%',
 						'background-position': 'right center'
 					}
+				},
+				'binary-rain': {
+					'0%': { transform: 'translateY(-100vh)', opacity: '1' },
+					'100%': { transform: 'translateY(100vh)', opacity: '0' }
+				},
+				'binary-change': {
+					'0%': { opacity: '0.3' },
+					'50%': { opacity: '1' },
+					'100%': { opacity: '0.3' }
 				}
 			},
 			animation: {
@@ -109,11 +113,13 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'float': 'float 3s ease-in-out infinite',
 				'pulse-slow': 'pulse-slow 4s ease-in-out infinite',
-				'gradient-x': 'gradient-x 15s ease infinite'
+				'gradient-x': 'gradient-x 15s ease infinite',
+				'binary-rain': 'binary-rain 10s linear infinite',
+				'binary-change': 'binary-change 2s ease-in-out infinite'
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-				'hero-gradient': 'linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(14, 165, 233, 0.15) 100%)'
+				'hero-gradient': 'linear-gradient(90deg, rgba(10, 12, 20, 1) 0%, rgba(18, 20, 31, 0.95) 100%)'
 			}
 		}
 	},
