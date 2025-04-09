@@ -18,16 +18,45 @@ buildConfig:
   outputDirectory: dist
 
 # Environment variables and secrets.
-# env:
-  # Configure environment variables.
-  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  # - variable: MESSAGE
-  #   value: Hello world!
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
+env:
+  # Configure public environment variables (available in frontend code)
+  # IMPORTANT: Do not put sensitive data here, it will be visible to users
+  - variable: VITE_FIREBASE_API_KEY
+    value: "${param:FIREBASE_API_KEY}"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: VITE_FIREBASE_AUTH_DOMAIN
+    value: "${param:FIREBASE_AUTH_DOMAIN}"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: VITE_FIREBASE_PROJECT_ID
+    value: "agenticbrowser-622ab"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: VITE_FIREBASE_STORAGE_BUCKET
+    value: "agenticbrowser-622ab.appspot.com"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: VITE_FIREBASE_MESSAGING_SENDER_ID
+    value: "${param:FIREBASE_MESSAGING_SENDER_ID}"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: VITE_FIREBASE_APP_ID
+    value: "${param:FIREBASE_APP_ID}"
+    availability:
+      - BUILD
+      - RUNTIME
 
-  # Grant access to secrets in Cloud Secret Manager.
-  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  # - variable: MY_SECRET
-  #   secret: mySecretRef
+  # Grant access to secrets for server-side rendering (if needed)
+  # These are only accessible server-side, never exposed to clients
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+  - variable: OPENROUTER_PROVISIONING_KEY
+    secret: OPENROUTER_PROVISIONING_KEY

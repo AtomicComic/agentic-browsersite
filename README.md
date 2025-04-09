@@ -1,69 +1,154 @@
-# Welcome to your Lovable project
+# AgenticBrowser Deployment Guide
 
-## Project info
+This guide provides step-by-step instructions for deploying the AgenticBrowser application with proper API key management using Google Secret Manager.
 
-**URL**: https://lovable.dev/projects/cd8c8e49-32a5-4b94-9b09-a682bf5a6f5a
+## Prerequisites
 
-## How can I edit this code?
+- Firebase CLI installed: `npm install -g firebase-tools`
+- Firebase project initialized: `firebase login` and `firebase use agenticbrowser-622ab`
+- Node.js v22 installed
 
-There are several ways of editing your application.
+## Step 1: Setup Secret Manager
 
-**Use Lovable**
+First, enable the Secret Manager API for your project:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/cd8c8e49-32a5-4b94-9b09-a682bf5a6f5a) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+# Enable Secret Manager API
+gcloud services enable secretmanager.googleapis.com --project=agenticbrowser-622ab
 ```
 
-**Edit a file directly in GitHub**
+## Step 2: Store Your API Keys as Secrets
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Use the Firebase CLI to create secrets for your API keys:
 
-**Use GitHub Codespaces**
+```bash
+# Store Stripe Secret Key
+firebase functions:secrets:set STRIPE_SECRET_KEY
+# When prompted, paste
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Store Stripe Webhook Secret
+firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
+# When prompted, paste
 
-## What technologies are used for this project?
+# Store OpenRouter Provisioning Key
+firebase functions:secrets:set OPENROUTER_PROVISIONING_KEY
+# When prompted, paste
+```
 
-This project is built with .
+Each command will prompt you to enter the secret value. Enter the appropriate value from your .env.local file.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Step 3: Install Dependencies and Build Functions
 
-## How can I deploy this project?
+```bash
+# Navigate to the functions directory
+cd functions
 
-Simply open [Lovable](https://lovable.dev/projects/cd8c8e49-32a5-4b94-9b09-a682bf5a6f5a) and click on Share -> Publish.
+# Install dependencies (including the new rimraf dependency)
+npm install
 
-## I want to use a custom domain - is that possible?
+# Clean build artifacts and rebuild
+npm run build:clean
+```
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+If you encounter TypeScript errors, they should now be resolved with our updated code that properly handles Secret Manager integration.
+
+## Step 4: Deploy Functions
+
+```bash
+# Deploy only the functions
+firebase deploy --only functions
+```
+
+This will deploy your Cloud Functions with Secret Manager integration.
+
+## Step 5: Set Up Frontend Hosting
+
+You have two options for hosting your frontend:
+
+### Option 1: Traditional Firebase Hosting (Static)
+
+```bash
+# Build your frontend
+cd ..  # Back to project root
+npm run build
+
+# Deploy to Firebase Hosting
+firebase deploy --only hosting
+```
+
+### Option 2: Firebase App Hosting (Advanced)
+
+If you prefer App Hosting with its advanced features like environment variables and server-side rendering:
+
+1. First, set parameters for your Firebase configuration:
+
+```bash
+# Get your Firebase Web SDK configuration from the Firebase Console
+# Then set these parameters
+firebase hosting:params:set FIREBASE_API_KEY "your-firebase-api-key"
+firebase hosting:params:set FIREBASE_AUTH_DOMAIN "agenticbrowser-622ab.firebaseapp.com"
+firebase hosting:params:set FIREBASE_MESSAGING_SENDER_ID "your-messaging-sender-id"
+firebase hosting:params:set FIREBASE_APP_ID "your-firebase-app-id"
+```
+
+2. Deploy using App Hosting:
+
+```bash
+# Deploy to Firebase App Hosting
+firebase deploy --only apphosting
+```
+
+## Step 6: Verify Deployment
+
+1. Check your Cloud Functions logs to ensure they're properly using the secrets:
+
+```bash
+firebase functions:log
+```
+
+2. Test your application by:
+   - Creating a checkout session
+   - Processing a webhook event
+   - Retrieving a user key
+
+## Troubleshooting
+
+If you encounter any issues:
+
+1. Check if the Secret Manager API is enabled:
+```bash
+gcloud services list --enabled --project=agenticbrowser-622ab | grep secretmanager
+```
+
+2. Verify your secrets are properly set:
+```bash
+firebase functions:secrets:list
+```
+
+3. Make sure your functions have permission to access secrets:
+```bash
+# This should be handled automatically, but you can check IAM permissions in the Google Cloud Console
+```
+
+4. If the build is failing, try a clean build:
+```bash
+cd functions
+npm run build:clean
+```
+
+## Local Development
+
+For local development with Firebase Emulators:
+
+```bash
+# Create local secrets configuration
+firebase functions:secrets:get > .secret.local
+
+# Ensure .secret.local is in your .gitignore
+echo ".secret.local" >> .gitignore
+
+# Start the emulator with secrets
+firebase emulators:start
+```
+
+This setup provides a secure and maintainable way to manage sensitive API keys for your application while supporting both local development and production deployment.

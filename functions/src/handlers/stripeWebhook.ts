@@ -2,10 +2,17 @@ import { Request, Response } from 'express';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 
-// Initialize Stripe with your secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-03-31.basil',
-});
+// With Secret Manager, we'll initialize Stripe inside the function
+// rather than at the module level to ensure secrets are available
+let stripe: Stripe | null = null;
+
+// Initialize Stripe for local development (emulator only)
+if (process.env.FUNCTIONS_EMULATOR === 'true' && process.env.STRIPE_SECRET_KEY) {
+  console.log('Emulator - initializing Stripe for webhook handler');
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-03-31.basil',
+  });
+}
 
 // Credits associated with each plan (visible to users)
 const PLAN_CREDITS: Record<string, number> = {
@@ -154,6 +161,17 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers['stripe-signature'] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  // Initialize Stripe if not already initialized
+  if (!stripe) {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return res.status(500).json({ error: 'Stripe API key is not configured. This function should be configured with Secret Manager access.' });
+    }
+    stripe = new Stripe(stripeKey, {
+      apiVersion: '2025-03-31.basil',
+    });
+  }
 
   if (!webhookSecret) {
     return res.status(500).json({ error: 'Stripe webhook secret is not configured' });

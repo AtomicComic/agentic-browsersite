@@ -2,22 +2,7 @@
   "functions": [
     {
       "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint",
-        "npm --prefix \"$RESOURCE_DIR\" run build"
-      ]
-    },
-    {
-      "source": "functionsnew",
-      "codebase": "functionsnew",
+      "codebase": "functions",
       "ignore": [
         "node_modules",
         ".git",
@@ -41,11 +26,13 @@
     "rewrites": [
       {
         "source": "/api/createCheckoutSession",
-        "function": "createCheckoutSession"
+        "function": "createCheckoutSessionHttp",
+        "codebase": "functions"
       },
       {
         "source": "/api/getUserKey",
-        "function": "getUserKey"
+        "function": "getUserKeyHttp",
+        "codebase": "functions"
       },
       {
         "source": "**",
@@ -59,32 +46,32 @@
   },
   "emulators": {
     "auth": {
-      "port": 9099,
+      "port": 9098,
       "host": "127.0.0.1"
     },
     "functions": {
-      "port": 5001,
+      "port": 5003,
       "host": "127.0.0.1"
     },
     "firestore": {
-      "port": 8090,
+      "port": 8091,
       "host": "127.0.0.1"
     },
     "ui": {
       "enabled": true,
-      "port": 4000
+      "port": 4001
     },
     "hosting": {
-      "port": 5000
+      "port": 5004
     },
     "hub": {
       "host": "localhost",
-      "port": 4400
+      "port": 4401
     },
     "apphosting": {
-      "port": 5002,
+      "port": 5005,
       "rootDirectory": "./",
-      "startCommand": "pnpm run dev"
+      "startCommand": "npm run dev"
     },
     "singleProjectMode": true
   }

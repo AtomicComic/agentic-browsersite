@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { functions } from '@/lib/firebase-config'; // Import the initialized functions instance
+import { functionsNew } from '@/lib/firebase-config'; // Import the specific functions instance for 'functionsnew' codebase
 import { httpsCallable } from 'firebase/functions'; // Keep httpsCallable import
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -132,12 +132,12 @@ const Pricing = () => {
       console.log('Starting checkout process for plan:', planId, 'isSubscription:', isSubscription);
 
       // Firebase functions instance is already initialized and connected to emulator in firebase-config.ts
-      // We just need the httpsCallable function itself
+          // We just need the httpsCallable function itself
 
-      // Create a callable function reference using the imported functions instance
-      const createCheckoutSessionCallable = httpsCallable(functions, 'createCheckoutSession');
+          // Create a callable function reference using the imported 'functionsNew' instance
+          const createCheckoutSessionCallable = httpsCallable(functionsNew, 'createCheckoutSession');
 
-      // Prepare the request data
+          // Prepare the request data
       const requestData = {
         planId,
         isSubscription,
