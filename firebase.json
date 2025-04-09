@@ -11,8 +11,8 @@
         "*.local"
       ],
       "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint",
-        "npm --prefix \"$RESOURCE_DIR\" run build"
+        "npm --prefix functions run lint",
+        "npm --prefix functions run build"
       ]
     }
   ],
@@ -26,13 +26,18 @@
     "rewrites": [
       {
         "source": "/api/createCheckoutSession",
-        "function": "createCheckoutSessionHttp",
-        "codebase": "functions"
+        "function": "createCheckoutSession",
+        "region": "us-central1"
       },
       {
         "source": "/api/getUserKey",
-        "function": "getUserKeyHttp",
-        "codebase": "functions"
+        "function": "getUserKey",
+        "region": "us-central1"
+      },
+      {
+        "source": "/api/stripeWebhook",
+        "function": "stripeWebhook",
+        "region": "us-central1"
       },
       {
         "source": "**",

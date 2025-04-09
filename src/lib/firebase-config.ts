@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getFunctions, Functions } from "firebase/functions"; // Import Functions type
+import { getFunctions } from "firebase/functions";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -22,37 +22,15 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const functions = getFunctions(app); // Default codebase instance (keep for potential use or remove if unused)
+
+// Initialize functions with the correct region
+const functions = getFunctions(app, 'us-central1');
+
 const googleProvider = new GoogleAuthProvider();
 
-// Get a specific instance for the 'functions' codebase
-const functionsNew: Functions = getFunctions(app, 'functions'); // Specify codebase only
-
-// Connect to emulators in development
-if (window.location.hostname === 'localhost') {
-  console.log('Running in development mode - connecting to Firebase emulators');
-  // Connect to Firestore emulator
-  import('firebase/firestore').then(({ connectFirestoreEmulator }) => {
-    connectFirestoreEmulator(db, 'localhost', 8091);
-    console.log('Connected to Firestore emulator');
-  });
-
-  // Connect to Functions emulator
-  import('firebase/functions').then(({ connectFunctionsEmulator }) => {
-    // Connect the specific 'functions' instance to the emulator
-    connectFunctionsEmulator(functionsNew, 'localhost', 5003);
-    console.log('Connected to Functions emulator (functions) at localhost:5003');
-  });
-
-  // Connect to Auth emulator
-  import('firebase/auth').then(({ connectAuthEmulator }) => {
-    connectAuthEmulator(auth, 'http://localhost:9098', { disableWarnings: true });
-    console.log('Connected to Auth emulator');
-  });
-}
 // Add scopes for Google provider
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 
 // Export the Firebase services
-export { app, analytics, auth, db, functions, functionsNew, googleProvider }; // Export the new instance
+export { app, analytics, auth, db, functions, googleProvider };

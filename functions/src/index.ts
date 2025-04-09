@@ -1,9 +1,16 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import cors from 'cors';
-import express from 'express';
-import * as http from 'http';
+import { Request, Response } from 'express';
+
+interface ErrorWithMessage {
+  message: string;
+}
+
+interface CallableError {
+  message?: string;
+  code?: string;
+}
 
 // Import secrets
 import { stripeSecretKey, stripeWebhookSecret, openRouterProvisioningKey } from './config';
@@ -17,24 +24,6 @@ import * as stripeWebhookHandler from './handlers/stripeWebhook';
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
-
-// Set up a CORS instance for production
-const allowedOrigins = [
-  'https://agentic-browser.com/',
-  'https://www.agentic-browser.com/',
-  'https://agenticbrowser-622ab.web.app/',
-  'https://agenticbrowser-622ab.firebaseapp.com/'
-]; 
-const corsMiddleware = cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('Not allowed by CORS'), false);
-    }
-    return callback(null, true);
-  },
-});
-
 // --- V2 Callable Functions ---
 
 /** 
@@ -44,10 +33,10 @@ const corsMiddleware = cors({
 export const createCheckoutSession = onCall({
   region: 'us-central1',
   cors: [
-    'https://agentic-browser.com/',
-    'https://www.agentic-browser.com/',
-    'https://agenticbrowser-622ab.web.app/',
-    'https://agenticbrowser-622ab.firebaseapp.com/'
+    'https://agentic-browser.com',
+    'https://www.agentic-browser.com',
+    'https://agenticbrowser-622ab.web.app',
+    'https://agenticbrowser-622ab.firebaseapp.com'
   ],
   secrets: [stripeSecretKey],
 }, async (request) => {
@@ -73,9 +62,10 @@ export const createCheckoutSession = onCall({
       successUrl,
       cancelUrl,
     });
-  } catch (error: any) {
-    console.error('Callable createCheckoutSession error:', error);
-    throw new HttpsError('internal', error.message || 'Unknown error');
+  } catch (error: unknown) {
+    const typedError = error as CallableError;
+    console.error('Callable error:', typedError);
+    throw new HttpsError('internal', typedError.message || 'Unknown error');
   }
 });
 
@@ -86,25 +76,27 @@ export const createCheckoutSession = onCall({
 export const getUserKey = onCall({
   region: 'us-central1',
   cors: [
-    'https://agentic-browser.com/',
-    'https://www.agentic-browser.com/',
-    'https://agenticbrowser-622ab.web.app/',
-    'https://agenticbrowser-622ab.firebaseapp.com/'
+    'https://agentic-browser.com',
+    'https://www.agentic-browser.com',
+    'https://agenticbrowser-622ab.web.app',
+    'https://agenticbrowser-622ab.firebaseapp.com'
   ],
   secrets: [openRouterProvisioningKey],
 }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated.');
   }
+
   try {
     const uid = request.auth.uid;
     return await getUserKeyHandler.getUserKeyCallable(uid);
-  } catch (error: any) {
-    console.error('Callable getUserKey error:', error);
-    if (error.message?.includes('API key not found')) {
-      throw new HttpsError('not-found', error.message);
+  } catch (error: unknown) {
+    const typedError = error as ErrorWithMessage;
+    console.error('Callable getUserKey error:', typedError);
+    if (typedError.message?.includes('API key not found')) {
+      throw new HttpsError('not-found', typedError.message);
     } else {
-      throw new HttpsError('internal', error.message || 'Unknown error');
+      throw new HttpsError('internal', typedError.message || 'Unknown error');
     }
   }
 });
@@ -119,36 +111,8 @@ export const stripeWebhook = onRequest({
   region: 'us-central1',
   secrets: [stripeSecretKey, stripeWebhookSecret],
 }, async (req, res) => {
-  await stripeWebhookHandler.handleStripeWebhook(req, res);
+  await stripeWebhookHandler.handleStripeWebhook(req as unknown as Request, res as unknown as Response);
 });
 
-// If you want separate HTTP endpoints (e.g., for debugging), 
-// you can define them similarly with onRequest and corsMiddleware. 
-// But for production security, limit open endpoints carefully.
 
-// --- Optional: If running in Cloud Run ---
-if (process.env.K_SERVICE) {
-  const app = express();
-  app.use(corsMiddleware);
-
-  // Health check
-  app.get('/', (req, res) => {
-    res.status(200).send('OK');
-  });
-
-  const server = http.createServer(app);
-  const PORT = process.env.PORT || 8080;
-  server.listen(PORT, () => {
-    console.log(`Cloud Run server listening on port ${PORT}`);
-  });
-
-  app.get('/health', (req, res) => {
-    res.status(200).send('Healthy');
-  });
-  
-
-  app.get('/ready', (req, res) => {
-    res.status(200).send('Ready');
-  });
-}
 
