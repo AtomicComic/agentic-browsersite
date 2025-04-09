@@ -25,7 +25,6 @@ const db = getFirestore(app);
 
 // Initialize functions with the correct region
 const functions = getFunctions(app, 'us-central1');
-
 const googleProvider = new GoogleAuthProvider();
 
 // Add scopes for Google provider

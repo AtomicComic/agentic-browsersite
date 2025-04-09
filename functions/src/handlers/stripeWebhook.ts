@@ -1,18 +1,11 @@
 import { Request, Response } from 'express';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
+import { logger } from 'firebase-functions';
 
 // With Secret Manager, we'll initialize Stripe inside the function
 // rather than at the module level to ensure secrets are available
 let stripe: Stripe | null = null;
-
-// Initialize Stripe for local development (emulator only)
-if (process.env.FUNCTIONS_EMULATOR === 'true' && process.env.STRIPE_SECRET_KEY) {
-  console.log('Emulator - initializing Stripe for webhook handler');
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-03-31.basil',
-  });
-}
 
 // Credits associated with each plan (visible to users)
 const PLAN_CREDITS: Record<string, number> = {
@@ -34,6 +27,41 @@ const OPENROUTER_CREDITS: Record<string, number> = {
   'credits-15000': 4500,      // 15000 / 3.33
 };
 
+// Type-safe error handling helper
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return typeof error === 'object' && error !== null && 'message' in error;
+}
+
+// Interface for OpenRouter API responses
+interface OpenRouterKeyResponse {
+  hash: string;
+  key: string;
+  usage?: number;
+  limit?: number;
+}
+
+// Enhanced fetch with timeout
+async function fetchWithTimeout(
+  url: string, 
+  options: RequestInit, 
+  timeout = 10000
+): Promise<globalThis.Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 // Function to provision or update an OpenRouter API key
 async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscription: boolean) {
   const PROVISIONING_API_KEY = process.env.OPENROUTER_PROVISIONING_KEY;
@@ -53,20 +81,24 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
     let currentLimit = 0;
 
     if (userData.openRouterKeyHash) {
-      // Get current usage from OpenRouter
-      const response = await fetch(`https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-          'Content-Type': 'application/json',
+      // Get current usage from OpenRouter with timeout
+      const response = await fetchWithTimeout(
+        `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${PROVISIONING_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
         },
-      });
+        10000 // 10s timeout
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to get OpenRouter key info: ${response.statusText}`);
       }
 
-      const keyData = await response.json();
+      const keyData = await response.json() as OpenRouterKeyResponse;
       currentUsage = keyData.usage || 0;
       currentLimit = keyData.limit || 0;
     }
@@ -78,22 +110,25 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
       newLimit = currentUsage + addCredits;
     } else {
       // For one-time purchases, we add to the limit
-      // If there's no existing key, current limit will be 0
       newLimit = currentLimit + addCredits;
     }
 
     if (userData.openRouterKeyHash) {
-      // Update existing key
-      const response = await fetch(`https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-          'Content-Type': 'application/json',
+      // Update existing key with timeout
+      const response = await fetchWithTimeout(
+        `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${PROVISIONING_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            limit: newLimit,
+          }),
         },
-        body: JSON.stringify({
-          limit: newLimit,
-        }),
-      });
+        10000 // 10s timeout
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to update OpenRouter key: ${response.statusText}`);
@@ -115,29 +150,33 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
       return userData.openRouterKeyHash;
     } else {
       // Create a new key
-      const response = await fetch('https://openrouter.ai/api/v1/keys', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-          'Content-Type': 'application/json',
+      const response = await fetchWithTimeout(
+        'https://openrouter.ai/api/v1/keys',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${PROVISIONING_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: 'Customer Instance Key',
+            label: `customer-${uid}`,
+            limit: newLimit,
+          }),
         },
-        body: JSON.stringify({
-          name: 'Customer Instance Key',
-          label: `customer-${uid}`,
-          limit: newLimit,
-        }),
-      });
+        10000 // 10s timeout
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to create OpenRouter key: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as OpenRouterKeyResponse;
 
       // Update the user with the new key information
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         openRouterKeyHash: data.hash,
-        openRouterKey: data.key, // In production, consider encrypting this
+        openRouterKey: data.key, // Consider implementing encryption for this value
       };
 
       if (isSubscription) {
@@ -152,13 +191,38 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
 
       return data.hash;
     }
-  } catch (error) {
-    console.error('Error provisioning OpenRouter key:', error);
+  } catch (error: unknown) {
+    const errorInfo = isErrorWithMessage(error) 
+      ? { message: error.message } 
+      : { message: 'Unknown error' };
+
+    logger.error('OpenRouter provisioning failed', {
+      uid,
+      error: errorInfo,
+      addCredits,
+      isSubscription
+    });
+    
     throw error;
   }
 }
 
-export async function handleStripeWebhook(req: Request, res: Response) {
+/**
+ * Extract subscription period end date safely from Stripe subscription data
+ */
+function getSubscriptionEndDate(subscription: Stripe.Subscription): number {
+  // Access the raw response data which includes metadata like current_period_end
+  const rawData = subscription as unknown as { current_period_end: number };
+  
+  if (!('current_period_end' in rawData)) {
+    throw new Error('Missing current_period_end in subscription data');
+  }
+  
+  // Convert UNIX timestamp (seconds) to JavaScript timestamp (milliseconds)
+  return rawData.current_period_end * 1000;
+}
+
+export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
   const sig = req.headers['stripe-signature'] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
@@ -166,7 +230,9 @@ export async function handleStripeWebhook(req: Request, res: Response) {
   if (!stripe) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
-      return res.status(500).json({ error: 'Stripe API key is not configured. This function should be configured with Secret Manager access.' });
+      logger.error('Stripe API key missing in webhook handler');
+      res.status(500).json({ error: 'Stripe API key is not configured.' });
+      return;
     }
     stripe = new Stripe(stripeKey, {
       apiVersion: '2025-03-31.basil',
@@ -174,7 +240,9 @@ export async function handleStripeWebhook(req: Request, res: Response) {
   }
 
   if (!webhookSecret) {
-    return res.status(500).json({ error: 'Stripe webhook secret is not configured' });
+    logger.error('Stripe webhook secret missing');
+    res.status(500).json({ error: 'Stripe webhook secret is not configured' });
+    return;
   }
 
   try {
@@ -182,8 +250,11 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err: any) {
-      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.warn('Webhook signature verification failed', { error: errorMessage });
+      res.status(400).json({ error: `Webhook Error: ${errorMessage}` });
+      return;
     }
 
     // Handle the event
@@ -193,7 +264,9 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         const { firebaseUID, planId, isSubscription } = session.metadata || {};
 
         if (!firebaseUID || !planId) {
-          return res.status(400).json({ error: 'Missing required metadata' });
+          logger.error('Missing metadata in checkout session', { metadata: session.metadata });
+          res.status(400).json({ error: 'Missing required metadata' });
+          return;
         }
 
         // Get user reference
@@ -202,30 +275,44 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         if (isSubscription === 'true') {
           // Handle subscription purchase
           if (!session.subscription) {
-            return res.status(400).json({ error: 'Missing subscription ID' });
+            logger.error('Missing subscription ID in checkout session', { sessionId: session.id });
+            res.status(400).json({ error: 'Missing subscription ID' });
+            return;
           }
 
           const subscriptionId = session.subscription as string;
+          
+          // Retrieve the subscription details
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          
+          try {
+            // Extract expiration date safely
+            const expiresAt = getSubscriptionEndDate(subscription);
+            
+            // Update user subscription data
+            await userRef.update({
+              'subscription.status': 'active',
+              'subscription.planId': planId,
+              'subscription.plan': planId.startsWith('monthly') ? 'monthly' : 'yearly',
+              'subscription.expiresAt': expiresAt,
+              'subscription.stripeSubscriptionId': subscriptionId,
+            });
 
-          // Calculate expiration date (end of current period)
-          const expiresAt = (subscription as any).current_period_end * 1000; // Convert to milliseconds
-
-          // Update user subscription data
-          await userRef.update({
-            'subscription.status': 'active',
-            'subscription.planId': planId,
-            'subscription.plan': planId.startsWith('monthly') ? 'monthly' : 'yearly',
-            'subscription.expiresAt': expiresAt,
-            'subscription.stripeSubscriptionId': subscriptionId,
-          });
-
-          // Provision or update OpenRouter key with appropriate credits
-          await provisionOpenRouterKey(
-            firebaseUID,
-            OPENROUTER_CREDITS[planId] || 0,
-            true
-          );
+            // Provision or update OpenRouter key with appropriate credits
+            await provisionOpenRouterKey(
+              firebaseUID,
+              OPENROUTER_CREDITS[planId] || 0,
+              true
+            );
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            logger.error('Error processing subscription data', { 
+              error: errorMessage, 
+              subscriptionId 
+            });
+            res.status(500).json({ error: 'Failed to process subscription data' });
+            return;
+          }
         } else {
           // Handle one-time purchase
           // Provision or update OpenRouter key with new total credits
@@ -241,45 +328,68 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
-
-        if (!(invoice as any).subscription) {
-          return res.status(400).json({ error: 'Missing subscription ID' });
+        
+        // In Stripe's API, invoice.subscription might be string ID or undefined
+        // Access it through type assertion and runtime check
+        const rawInvoice = invoice as unknown as { subscription?: string };
+        const subscriptionId = rawInvoice.subscription;
+        
+        if (!subscriptionId) {
+          logger.error('Missing subscription ID in invoice', { invoiceId: invoice.id });
+          res.status(400).json({ error: 'Missing subscription ID' });
+          return;
         }
 
-        const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string);
-        const customerId = invoice.customer as string;
+        try {
+          // Retrieve subscription details safely
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          
+          // Safely extract expiration date
+          const expiresAt = getSubscriptionEndDate(subscription);
+          
+          const customerId = invoice.customer as string;
 
-        // Find user by Stripe customer ID
-        const usersSnapshot = await admin.firestore().collection('users')
-          .where('stripeCustomerId', '==', customerId)
-          .limit(1)
-          .get();
+          // Find user by Stripe customer ID
+          const usersSnapshot = await admin.firestore().collection('users')
+            .where('stripeCustomerId', '==', customerId)
+            .limit(1)
+            .get();
 
-        if (usersSnapshot.empty) {
-          return res.status(404).json({ error: 'User not found' });
-        }
+          if (usersSnapshot.empty) {
+            logger.error('User not found for customer ID', { customerId });
+            res.status(404).json({ error: 'User not found' });
+            return;
+          }
 
-        const userDoc = usersSnapshot.docs[0];
-        const uid = userDoc.id;
-        const userData = userDoc.data();
+          const userDoc = usersSnapshot.docs[0];
+          const uid = userDoc.id;
+          const userData = userDoc.data();
 
-        // Get the plan ID from subscription metadata or items
-        const planId = userData.subscription?.planId;
+          // Get the plan ID from subscription metadata or items
+          const planId = userData.subscription?.planId;
 
-        if (planId && OPENROUTER_CREDITS[planId]) {
-          // Calculate new expiration date
-          const expiresAt = (subscription as any).current_period_end * 1000;
+          if (planId && OPENROUTER_CREDITS[planId]) {
+            // Update user subscription data
+            await admin.firestore().collection('users').doc(uid).update({
+              'subscription.status': 'active',
+              'subscription.expiresAt': expiresAt,
+            });
 
-          // Update user subscription data
-          await admin.firestore().collection('users').doc(uid).update({
-            'subscription.status': 'active',
-            'subscription.expiresAt': expiresAt,
+            // Reset credits to the plan amount for the new billing cycle
+            await provisionOpenRouterKey(uid, OPENROUTER_CREDITS[planId], true);
+          } else {
+            logger.error('Invalid plan ID in subscription', { planId, uid });
+            res.status(400).json({ error: 'Invalid plan ID' });
+            return;
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          logger.error('Error processing invoice data', { 
+            error: errorMessage, 
+            invoiceId: invoice.id 
           });
-
-          // Reset credits to the plan amount for the new billing cycle
-          await provisionOpenRouterKey(uid, OPENROUTER_CREDITS[planId], true);
-        } else {
-          return res.status(400).json({ error: 'Invalid plan ID' });
+          res.status(500).json({ error: 'Failed to process invoice data' });
+          return;
         }
 
         break;
@@ -297,7 +407,9 @@ export async function handleStripeWebhook(req: Request, res: Response) {
           .get();
 
         if (usersSnapshot.empty) {
-          return res.status(404).json({ error: 'User not found' });
+          logger.error('User not found for customer ID', { customerId, event: event.type });
+          res.status(404).json({ error: 'User not found' });
+          return;
         }
 
         const userDoc = usersSnapshot.docs[0];
@@ -308,59 +420,78 @@ export async function handleStripeWebhook(req: Request, res: Response) {
           'subscription.status': 'inactive',
         });
 
-        // Optionally disable the OpenRouter key or reduce limits
+        // Handle OpenRouter key adjustment
         const userData = userDoc.data();
         if (userData.openRouterKeyHash) {
           const PROVISIONING_API_KEY = process.env.OPENROUTER_PROVISIONING_KEY;
 
           if (!PROVISIONING_API_KEY) {
-            return res.status(500).json({ error: 'OpenRouter provisioning key is not configured' });
+            logger.error('OpenRouter provisioning key missing');
+            res.status(500).json({ error: 'OpenRouter provisioning key is not configured' });
+            return;
           }
 
-          // Get current usage from OpenRouter
-          const keyResponse = await fetch(`https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`, {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!keyResponse.ok) {
-            return res.status(500).json({ error: 'Failed to get OpenRouter key info' });
-          }
-
-          const keyData = await keyResponse.json();
-          const currentUsage = keyData.usage || 0;
-
-          // If one-time credits remain, set limit to usage + remaining one-time credits
-          const remainingOneTimeCredits = userData.openRouterCredits || 0;
-
-          if (remainingOneTimeCredits > 0) {
-            // Update key with new limit based only on one-time credits
-            await fetch(`https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`, {
-              method: 'PATCH',
-              headers: {
-                Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-                'Content-Type': 'application/json',
+          try {
+            // Get current usage from OpenRouter
+            const keyResponse = await fetchWithTimeout(
+              `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
+              {
+                method: 'GET',
+                headers: {
+                  Authorization: `Bearer ${PROVISIONING_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
               },
-              body: JSON.stringify({
-                limit: currentUsage + remainingOneTimeCredits,
-              }),
-            });
-          } else {
-            // If no one-time credits, just set the limit to current usage
-            // This effectively disables further usage without deleting the key
-            await fetch(`https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`, {
-              method: 'PATCH',
-              headers: {
-                Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                limit: currentUsage,
-              }),
-            });
+              10000
+            );
+
+            if (!keyResponse.ok) {
+              throw new Error(`Failed to get OpenRouter key info: ${keyResponse.statusText}`);
+            }
+
+            const keyData = await keyResponse.json() as OpenRouterKeyResponse;
+            const currentUsage = keyData.usage || 0;
+
+            // If one-time credits remain, set limit to usage + remaining one-time credits
+            const remainingOneTimeCredits = userData.openRouterCredits || 0;
+
+            if (remainingOneTimeCredits > 0) {
+              // Update key with new limit based only on one-time credits
+              await fetchWithTimeout(
+                `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
+                {
+                  method: 'PATCH',
+                  headers: {
+                    Authorization: `Bearer ${PROVISIONING_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    limit: currentUsage + remainingOneTimeCredits,
+                  }),
+                },
+                10000
+              );
+            } else {
+              // If no one-time credits, just set the limit to current usage
+              await fetchWithTimeout(
+                `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
+                {
+                  method: 'PATCH',
+                  headers: {
+                    Authorization: `Bearer ${PROVISIONING_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    limit: currentUsage,
+                  }),
+                },
+                10000
+              );
+            }
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            logger.error('Error updating OpenRouter key limits', { error: errorMessage, uid });
+            // Continue execution - this is a non-critical error
           }
         }
 
@@ -368,9 +499,12 @@ export async function handleStripeWebhook(req: Request, res: Response) {
       }
     }
 
-    return res.status(200).json({ received: true });
-  } catch (error: any) {
-    console.error('Error handling webhook:', error);
-    return res.status(500).json({ error: `Webhook Error: ${error.message}` });
+    res.status(200).json({ received: true });
+    return;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error handling webhook', { error: errorMessage });
+    res.status(500).json({ error: 'Internal server error' });
+    return;
   }
 }

@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 import { config } from '../config';
+import { logger } from 'firebase-functions';
 
 // Price IDs from config
 const PRICE_IDS = config.stripe.priceIds;
@@ -16,10 +17,15 @@ function getStripeInstance(): Stripe {
       throw new Error('Stripe API key is not available. Make sure secrets are configured.');
     }
     stripe = new Stripe(stripeKey, {
-      apiVersion: '2025-03-31.basil', // Your stated correct version
+      apiVersion: '2025-03-31.basil',
     });
   }
   return stripe;
+}
+
+// Validate plan ID
+function isValidPlanId(planId: string): boolean {
+  return Object.keys(PRICE_IDS).includes(planId);
 }
 
 // Callable function core logic
@@ -34,10 +40,12 @@ export async function createCheckoutSessionCallable(
     const stripeInstance = getStripeInstance();
 
     // Validate plan ID
-    const priceId = PRICE_IDS[planId as keyof typeof PRICE_IDS];
-    if (!priceId) {
+    if (!isValidPlanId(planId)) {
+      logger.warn('Invalid plan ID provided', { uid, planId });
       throw new Error('Invalid plan ID');
     }
+
+    const priceId = PRICE_IDS[planId as keyof typeof PRICE_IDS];
 
     // Get or create Stripe customer
     const userRef = admin.firestore().collection('users').doc(uid);
@@ -55,7 +63,7 @@ export async function createCheckoutSessionCallable(
       await userRef.update({ stripeCustomerId });
     }
 
-    // Create checkout session
+    // Create checkout session with proper metadata for webhook validation
     const session = await stripeInstance.checkout.sessions.create({
       customer: stripeCustomerId,
       payment_method_types: ['card'],
@@ -75,9 +83,18 @@ export async function createCheckoutSessionCallable(
       },
     });
 
-    return { url: session.url || '' };
-  } catch (error) {
-    console.error('Error in createCheckoutSessionCallable:', error);
+    if (!session.url) {
+      throw new Error('Stripe did not return a session URL');
+    }
+
+    return { url: session.url };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error in createCheckoutSessionCallable', { 
+      error: errorMessage, 
+      uid,
+      planId
+    });
     throw error;
   }
 }

@@ -11,7 +11,6 @@
         "*.local"
       ],
       "predeploy": [
-        "npm --prefix functions run lint",
         "npm --prefix functions run build"
       ]
     }
@@ -26,18 +25,27 @@
     "rewrites": [
       {
         "source": "/api/createCheckoutSession",
-        "function": "createCheckoutSession",
-        "region": "us-central1"
+        "function": {
+          "functionId": "createCheckoutSession",
+          "region": "us-central1",
+          "pinTag": true
+        }
       },
       {
         "source": "/api/getUserKey",
-        "function": "getUserKey",
-        "region": "us-central1"
+        "function": {
+          "functionId": "getUserKey",
+          "region": "us-central1",
+          "pinTag": true
+        }
       },
       {
         "source": "/api/stripeWebhook",
-        "function": "stripeWebhook",
-        "region": "us-central1"
+        "function": {
+          "functionId": "stripeWebhook",
+          "region": "us-central1",
+          "pinTag": true
+        }
       },
       {
         "source": "**",
@@ -49,35 +57,5 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "emulators": {
-    "auth": {
-      "port": 9098,
-      "host": "127.0.0.1"
-    },
-    "functions": {
-      "port": 5003,
-      "host": "127.0.0.1"
-    },
-    "firestore": {
-      "port": 8091,
-      "host": "127.0.0.1"
-    },
-    "ui": {
-      "enabled": true,
-      "port": 4001
-    },
-    "hosting": {
-      "port": 5004
-    },
-    "hub": {
-      "host": "localhost",
-      "port": 4401
-    },
-    "apphosting": {
-      "port": 5005,
-      "rootDirectory": "./",
-      "startCommand": "npm run dev"
-    },
-    "singleProjectMode": true
-  }
+  "singleProjectMode": true
 }

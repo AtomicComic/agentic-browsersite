@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getUserOpenRouterKey } from './firebase-functions';
 
 // User type including Stripe customer ID and OpenRouter key information
 interface UserData {
@@ -80,28 +81,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  // Function to get the user's OpenRouter API key from the backend
+  // Function to get the user's OpenRouter API key from Firebase Function
   const getUserOpenRouterApiKey = async (): Promise<string | null> => {
     if (!currentUser) {
       return null;
     }
 
     try {
-      const idToken = await currentUser.getIdToken();
-      const response = await fetch('/api/getUserKey', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get API key');
-      }
-
-      const data = await response.json();
-      return data.apiKey;
+      // Use the Firebase callable function
+      const apiKey = await getUserOpenRouterKey();
+      return apiKey;
     } catch (error) {
       console.error("Error getting OpenRouter API key:", error);
       return null;
