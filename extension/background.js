@@ -1,37 +1,24 @@
 // Background script for handling events and communication
 
-// Listen for messages from the website (for authentication)
-chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
-  // Make sure the message is coming from your website
-  if (sender.url && (sender.url.startsWith('https://agenticbrowser.com') ||
-                    sender.url.startsWith('http://localhost'))) {
+// Use chrome.runtime.onMessage instead of window.addEventListener
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'OPENROUTER_API_KEY') {
+    const { key, userInfo, credits, subscription } = message.payload;
     
-    // Handle authentication success
-    if (message.type === 'OPENROUTER_API_KEY') {
-      const { key, userInfo, credits } = message.payload;
-      
-      // Store the API key and user info
-      chrome.storage.local.set({
-        openRouterApiKey: key,
-        userInfo: userInfo,
-        credits: credits
-      }, () => {
-        // Relay the authentication success to the popup if it's open
-        chrome.runtime.sendMessage({
-          type: 'AUTH_SUCCESS',
-          data: {
-            apiKey: key,
-            userInfo: userInfo,
-            credits: credits
-          }
-        });
-        
-        // Send response back to website
-        sendResponse({ status: 'success' });
+    // Store auth data
+    chrome.storage.local.set({
+      openRouterApiKey: key,
+      userInfo,
+      credits,
+      subscription,
+      lastUpdated: Date.now()
+    }).then(() => {
+      // Notify popup if open
+      chrome.runtime.sendMessage({
+        type: 'AUTH_SUCCESS',
+        data: { apiKey: key, userInfo, credits, subscription }
       });
-      
-      return true; // Required for async response
-    }
+    });
   }
 });
 
@@ -94,7 +81,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-// Helper function to call OpenRouter API (if using option 2 above)
+// Helper function to call OpenRouter API
 async function callOpenRouter(prompt, apiKey) {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -115,4 +102,41 @@ async function callOpenRouter(prompt, apiKey) {
   }
   
   return await response.json();
+}
+
+// Add function to check auth and fetch data
+async function checkAuthAndFetchData() {
+  const storage = await chrome.storage.local.get(['openRouterApiKey', 'userInfo', 'lastUpdated']);
+  
+  if (!storage.openRouterApiKey || !storage.userInfo) {
+    return false;
+  }
+
+  try {
+    // Fetch latest user data from your API
+    const response = await fetch('https://agenticbrowser.com/api/user-data', {
+      headers: {
+        'Authorization': `Bearer ${storage.openRouterApiKey}`,
+      }
+    });
+
+    if (!response.ok) {
+      await chrome.storage.local.remove(['openRouterApiKey', 'userInfo', 'credits']);
+      return false;
+    }
+
+    const userData = await response.json();
+    
+    // Update storage with latest data
+    await chrome.storage.local.set({
+      credits: userData.credits,
+      subscription: userData.subscription,
+      lastUpdated: Date.now()
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error checking auth:', error);
+    return false;
+  }
 }

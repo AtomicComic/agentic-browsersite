@@ -17,21 +17,26 @@ const loggedInView = document.getElementById('logged-in-view');
 
 // Check authentication state on popup open
 document.addEventListener('DOMContentLoaded', async () => {
-  checkAuthState();
+  const storage = await chrome.storage.local.get(['openRouterApiKey', 'userInfo', 'lastUpdated']);
   
-  // Set up event listeners
-  loginButton.addEventListener('click', openLoginWindow);
-  logoutButton.addEventListener('click', logout);
-  buyCreditsButton.addEventListener('click', openPricingPage);
-  dashboardButton.addEventListener('click', openDashboardPage);
-  sendButton.addEventListener('click', sendPrompt);
-  
-  // Allow pressing Enter to send prompt
-  promptInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      sendPrompt();
+  if (!storage.openRouterApiKey || !storage.userInfo) {
+    showLoggedOutView();
+    return;
+  }
+
+  // If data is older than 5 minutes, refresh it
+  const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  if (!storage.lastUpdated || Date.now() - storage.lastUpdated > REFRESH_INTERVAL) {
+    const isValid = await checkAuthAndFetchData();
+    if (!isValid) {
+      showLoggedOutView();
+      return;
     }
-  });
+  }
+
+  // Get latest storage data
+  const latestStorage = await chrome.storage.local.get(['userInfo', 'credits', 'subscription']);
+  showLoggedInView(latestStorage.userInfo, latestStorage.credits, latestStorage.subscription);
 });
 
 // Check if user is authenticated and update UI accordingly
@@ -48,28 +53,25 @@ function checkAuthState() {
 }
 
 // Show the logged-in view with user info
-function showLoggedInView(userInfo, credits) {
-  loggedOutView.classList.add('hidden');
-  loggedInView.classList.remove('hidden');
+function showLoggedInView(userInfo, credits, subscription) {
+  document.getElementById('login-view').style.display = 'none';
+  document.getElementById('logged-in-view').style.display = 'block';
   
-  // Display user email
-  userEmail.textContent = userInfo.email || 'User';
+  // Update UI with user info
+  document.getElementById('user-email').textContent = userInfo.email;
+  document.getElementById('credits').textContent = credits;
   
-  // Display credits if available
-  if (credits) {
-    creditsDisplay.classList.remove('hidden');
-    creditsCount.textContent = credits;
+  // Show subscription status if active
+  if (subscription?.status === 'active') {
+    document.getElementById('subscription-status').textContent = 
+      `Active ${subscription.plan} subscription`;
   }
 }
 
 // Show the logged-out view
 function showLoggedOutView() {
-  loggedInView.classList.add('hidden');
-  loggedOutView.classList.remove('hidden');
-  creditsDisplay.classList.add('hidden');
-  
-  // Clear chat messages
-  chatMessages.innerHTML = '<p class="text-gray-400 italic">Ask a question to get started...</p>';
+  document.getElementById('login-view').style.display = 'block';
+  document.getElementById('logged-in-view').style.display = 'none';
 }
 
 // Open login window
@@ -79,32 +81,13 @@ function openLoginWindow() {
   const left = (screen.width - width) / 2;
   const top = (screen.height - height) / 2;
   
-  const loginUrl = `${API_BASE_URL}/login?source=extension`;
-  
   chrome.windows.create({
-    url: loginUrl,
+    url: 'https://agenticbrowser.com/login?source=extension',
     type: 'popup',
-    width: width,
-    height: height,
-    left: left,
-    top: top
-  });
-  
-  // Listen for messages from the login window
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'AUTH_SUCCESS') {
-      const { apiKey, userInfo, credits } = message.data;
-      
-      // Store the API key and user info
-      chrome.storage.local.set({
-        openRouterApiKey: apiKey,
-        userInfo: userInfo,
-        credits: credits
-      }, () => {
-        // Update UI
-        showLoggedInView(userInfo, credits);
-      });
-    }
+    width,
+    height,
+    left,
+    top
   });
 }
 
