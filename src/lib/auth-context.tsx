@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getUserOpenRouterKey } from './firebase-functions';
+import { getUserOpenRouterKey, OpenRouterCreditInfo } from './firebase-functions';
 
 // User type including Stripe customer ID and OpenRouter key information
 interface UserData {
@@ -22,7 +22,9 @@ interface AuthContextProps {
   currentUser: User | null;
   userData: UserData | null;
   loading: boolean;
-  getUserOpenRouterApiKey: () => Promise<string | null>;
+  openRouterCredits: OpenRouterCreditInfo | null;
+  getUserOpenRouterApiKey: () => Promise<{ apiKey: string; credits?: OpenRouterCreditInfo } | null>;
+  refreshOpenRouterCredits: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -39,17 +41,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openRouterCredits, setOpenRouterCredits] = useState<OpenRouterCreditInfo | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      
+
       if (user) {
         // Fetch additional user data from Firestore
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             setUserData(userDoc.data() as UserData);
           } else {
@@ -64,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 expiresAt: null
               }
             };
-            
+
             await setDoc(userDocRef, newUserData);
             setUserData(newUserData);
           }
@@ -74,34 +77,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setUserData(null);
       }
-      
+
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  // Function to get the user's OpenRouter API key from Firebase Function
-  const getUserOpenRouterApiKey = async (): Promise<string | null> => {
+  // Function to get the user's OpenRouter API key and credits from Firebase Function
+  const getUserOpenRouterApiKey = async (): Promise<{ apiKey: string; credits?: OpenRouterCreditInfo } | null> => {
     if (!currentUser) {
       return null;
     }
 
     try {
       // Use the Firebase callable function
-      const apiKey = await getUserOpenRouterKey();
-      return apiKey;
+      const result = await getUserOpenRouterKey();
+      return result;
     } catch (error) {
-      console.error("Error getting OpenRouter API key:", error);
+      console.error("Error getting OpenRouter API key and credits:", error);
       return null;
     }
   };
+
+  // Function to refresh OpenRouter credits
+  const refreshOpenRouterCredits = async (): Promise<void> => {
+    if (!currentUser) return;
+
+    try {
+      const result = await getUserOpenRouterApiKey();
+      if (result?.credits) {
+        setOpenRouterCredits(result.credits);
+      }
+    } catch (error) {
+      console.error('Error refreshing OpenRouter credits:', error);
+    }
+  };
+
+  // Fetch OpenRouter credits when user logs in
+  useEffect(() => {
+    if (currentUser && userData?.openRouterKeyHash && !openRouterCredits) {
+      refreshOpenRouterCredits();
+    }
+  }, [currentUser, userData, openRouterCredits]);
 
   const value = {
     currentUser,
     userData,
     loading,
+    openRouterCredits,
     getUserOpenRouterApiKey,
+    refreshOpenRouterCredits,
   };
 
   return (

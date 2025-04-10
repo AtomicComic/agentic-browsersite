@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth-context';
 import { logoutUser } from '@/lib/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 
 const Navbar = () => {
@@ -14,6 +14,10 @@ const Navbar = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
+
+  // Check if we're on the homepage
+  const isHomePage = location.pathname === '/' || location.pathname === '/home';
 
   // Handle logout
   const handleLogout = async () => {
@@ -58,22 +62,40 @@ const Navbar = () => {
     >
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Logo className="w-8 h-8" />
-          <span className={`font-normal text-xl tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
-            isScrolled ? 'text-white' : 'text-white'
-          }`}>AgenticBrowser</span>
+          <Link to="/" className="flex items-center gap-3">
+            <Logo className="w-8 h-8" />
+            <span className={`font-normal text-xl tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+              isScrolled ? 'text-white' : 'text-white'
+            }`}>AgenticBrowser</span>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8 ml-8">
-            <a href="#features" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
-              isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
-            }`}>Features</a>
-            <a href="#use-cases" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
-              isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
-            }`}>Use Cases</a>
-            <a href="#how-it-works" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
-              isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
-            }`}>Get Started</a>
+            {isHomePage ? (
+              <>
+                <a href="#features" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                  isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
+                }`}>Features</a>
+                <a href="#use-cases" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                  isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
+                }`}>Use Cases</a>
+                <a href="#how-it-works" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                  isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
+                }`}>Get Started</a>
+              </>
+            ) : (
+              <>
+                <Link to="/features" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                  isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
+                }`}>Features</Link>
+                <Link to="/use-cases" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                  isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
+                }`}>Use Cases</Link>
+                <Link to="/" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                  isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
+                }`}>Get Started</Link>
+              </>
+            )}
           </nav>
         </div>        {/* Right side buttons */}
         <div className="hidden md:flex items-center gap-4">
@@ -85,7 +107,7 @@ const Navbar = () => {
                   isScrolled ? 'text-white hover:bg-white/10' : 'text-white hover:bg-white/10'
                 }`}
               >
-                <a href="/dashboard">Dashboard</a>
+                <Link to="/dashboard">Dashboard</Link>
               </Button>
               <Button
                 variant="ghost"
@@ -104,7 +126,7 @@ const Navbar = () => {
                 isScrolled ? 'text-white hover:bg-white/10' : 'text-white hover:bg-white/10'
               }`}
             >
-              <a href="/login">Log in</a>
+              <Link to="/login">Log in</Link>
             </Button>
           )}
           <Button className={`bg-[#66B3FF] hover:bg-[#66B3FF]/90 text-sm font-normal rounded-none font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
@@ -130,27 +152,55 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden backdrop-blur-xl absolute top-full left-0 right-0 border-b border-gray-800 shadow-lg bg-[#0A0C14]/90">
           <div className="flex flex-col space-y-4 p-4">
-            <a
-              href="#features"
-              className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Features
-            </a>
-            <a
-              href="#use-cases"
-              className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Use Cases
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Get Started
-            </a>            <div className="flex flex-col gap-2 pt-2">
+            {isHomePage ? (
+              <>
+                <a
+                  href="#features"
+                  className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Features
+                </a>
+                <a
+                  href="#use-cases"
+                  className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Use Cases
+                </a>
+                <a
+                  href="#how-it-works"
+                  className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Get Started
+                </a>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/features"
+                  className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Features
+                </Link>
+                <Link
+                  to="/use-cases"
+                  className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Use Cases
+                </Link>
+                <Link
+                  to="/"
+                  className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}            <div className="flex flex-col gap-2 pt-2">
               {currentUser ? (
                 <>
                   <Button
@@ -158,7 +208,7 @@ const Navbar = () => {
                     className="justify-start text-white hover:bg-white/10 font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <a href="/dashboard">Dashboard</a>
+                    <Link to="/dashboard">Dashboard</Link>
                   </Button>
                   <Button
                     variant="ghost"
@@ -177,7 +227,7 @@ const Navbar = () => {
                   className="justify-start text-white hover:bg-white/10 font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <a href="/login">Log in</a>
+                  <Link to="/login">Log in</Link>
                 </Button>
               )}
               <Button

@@ -8,11 +8,25 @@ interface CheckoutSessionResponse {
 
 interface UserKeyResponse {
   apiKey: string;
+  credits?: OpenRouterCreditInfo;
+}
+
+/**
+ * Interface for OpenRouter credit information
+ */
+export interface OpenRouterCreditInfo {
+  credits: {
+    used: number;
+    limit: number;
+    remaining: number | null;
+  };
+  isFreeTier: boolean;
+  rateLimit: number | null;
 }
 
 /**
  * Creates a Stripe checkout session for purchasing credits or subscriptions
- * 
+ *
  * @param planId - The ID of the plan to purchase
  * @param isSubscription - Whether this is a subscription or one-time purchase
  * @param successUrl - URL to redirect to on successful payment
@@ -54,11 +68,11 @@ export async function createCheckoutSession(
 }
 
 /**
- * Retrieves the user's OpenRouter API key
- * 
- * @returns Promise with the API key
+ * Retrieves the user's OpenRouter API key and credit information
+ *
+ * @returns Promise with the API key and credit information
  */
-export async function getUserOpenRouterKey(): Promise<string> {
+export async function getUserOpenRouterKey(): Promise<{ apiKey: string; credits?: OpenRouterCreditInfo }> {
   try {
     // Create a callable function reference
     const getUserKeyCallable = httpsCallable<null, UserKeyResponse>(
@@ -69,10 +83,15 @@ export async function getUserOpenRouterKey(): Promise<string> {
     // Call the function (no parameters needed)
     const result = await getUserKeyCallable();
 
-    // Return the API key
-    return result.data.apiKey;
+    // Return the API key and credits
+    return {
+      apiKey: result.data.apiKey,
+      credits: result.data.credits
+    };
   } catch (error) {
-    console.error('Error retrieving API key:', error);
+    console.error('Error retrieving API key and credits:', error);
     throw error;
   }
 }
+
+

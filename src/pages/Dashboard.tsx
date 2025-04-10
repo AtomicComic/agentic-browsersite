@@ -1,21 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+// Progress component no longer needed
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+// No need to import OpenRouterCreditInfo as we're using it from the auth context
 
 const Dashboard = () => {
-  const { currentUser, userData, loading, getUserOpenRouterApiKey } = useAuth();
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [isLoadingKey, setIsLoadingKey] = useState(false);
+  const { currentUser, userData, loading, openRouterCredits, refreshOpenRouterCredits, getUserOpenRouterApiKey } = useAuth();
+  const [isRefreshingCredits, setIsRefreshingCredits] = useState(false);
+  const [lastCreditRefresh, setLastCreditRefresh] = useState<Date | null>(null);
   const navigate = useNavigate();
 
   // Check if dashboard is opened from Chrome extension
   const [isFromExtension, setIsFromExtension] = useState(false);
   const [extensionId, setExtensionId] = useState<string | null>(null);
+
+  // Function to refresh OpenRouter credits with loading state
+  const handleRefreshCredits = async () => {
+    setIsRefreshingCredits(true);
+    try {
+      await refreshOpenRouterCredits();
+      setLastCreditRefresh(new Date());
+    } catch (error) {
+      console.error('Error refreshing OpenRouter credits:', error);
+    } finally {
+      setIsRefreshingCredits(false);
+    }
+  };
+
+  // Set last refresh time when credits are updated
+  useEffect(() => {
+    if (openRouterCredits && !lastCreditRefresh) {
+      setLastCreditRefresh(new Date());
+    }
+  }, [openRouterCredits, lastCreditRefresh]);
 
   // Use an effect to check URL parameters after component mount
   useEffect(() => {
@@ -54,15 +76,23 @@ const Dashboard = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, loading, navigate, isFromExtension, extensionId]);
 
+
+
   const handleGetApiKey = async () => {
-    setIsLoadingKey(true);
     try {
-      const key = await getUserOpenRouterApiKey();
-      setApiKey(key);
+      // Refresh credits to ensure we have the latest data
+      await handleRefreshCredits();
 
       // If we're in the Chrome extension context, send the key back to the extension
       if (isFromExtension) {
         console.log('Sending API key to extension...');
+
+        // Get the API key
+        const apiKeyResult = await getUserOpenRouterApiKey();
+        if (!apiKeyResult) {
+          console.error('Failed to get API key for extension');
+          return;
+        }
 
         // Get user info
         const userInfo = {
@@ -89,7 +119,7 @@ const Dashboard = () => {
               {
                 type: 'OPENROUTER_API_KEY',
                 payload: {
-                  key,
+                  key: apiKeyResult.apiKey,
                   userInfo,
                   credits,
                   subscription
@@ -125,7 +155,7 @@ const Dashboard = () => {
           window.opener.postMessage({
             type: 'OPENROUTER_API_KEY',
             payload: {
-              key,
+              key: apiKeyResult.apiKey,
               userInfo,
               credits,
               subscription
@@ -140,8 +170,6 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error retrieving API key:', error);
-    } finally {
-      setIsLoadingKey(false);
     }
   };
 
@@ -166,7 +194,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#0A0C14] text-white">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-24 pb-8">
         <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -185,9 +213,13 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Subscription Status</p>
-                  <p className="capitalize">{userData?.subscription?.status || 'No active subscription'}</p>
+                  {userData?.subscription?.status === 'canceled' ? (
+                    <p className="text-yellow-500">Canceled (active until period end)</p>
+                  ) : (
+                    <p className="capitalize">{userData?.subscription?.status || 'No active subscription'}</p>
+                  )}
                 </div>
-                {userData?.subscription?.status === 'active' && (
+                {(userData?.subscription?.status === 'active' || userData?.subscription?.status === 'canceled') && (
                   <div>
                     <p className="text-sm text-gray-400">Subscription Plan</p>
                     <p className="capitalize">{userData?.subscription?.plan}</p>
@@ -195,7 +227,9 @@ const Dashboard = () => {
                 )}
                 {userData?.subscription?.expiresAt && (
                   <div>
-                    <p className="text-sm text-gray-400">Renews On</p>
+                    <p className="text-sm text-gray-400">
+                      {userData?.subscription?.status === 'canceled' ? 'Active Until' : 'Renews On'}
+                    </p>
                     <p>{formatDate(userData.subscription.expiresAt)}</p>
                   </div>
                 )}
@@ -205,20 +239,68 @@ const Dashboard = () => {
 
           <Card className="bg-gray-800 text-white border-gray-700">
             <CardHeader>
-              <CardTitle>API Credits</CardTitle>
-              <CardDescription className="text-gray-400">
-                Your available OpenRouter API credits
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>API Credits</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Your available OpenRouter API credits
+                  </CardDescription>
+                </div>
+                {userData?.openRouterKeyHash && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={handleRefreshCredits}
+                          disabled={isRefreshingCredits}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`h-4 w-4 ${isRefreshingCredits ? 'animate-spin' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Refresh OpenRouter credits</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <p className="text-sm text-gray-400">Available Credits</p>
-                    <p className="text-sm font-medium">{userData?.credits || 0}</p>
+                {openRouterCredits && (
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <p className="text-sm text-gray-400">OpenRouter Credits Balance</p>
+                      <p className="text-sm font-medium">
+                        {openRouterCredits.credits.remaining !== null
+                          ? `${openRouterCredits.credits.remaining.toFixed(2)}`
+                          : 'Unlimited'}
+                      </p>
+                    </div>
+                    {/* We're not showing the progress bar since we're only displaying the balance */}
+                    {lastCreditRefresh && (
+                      <p className="text-xs text-gray-500 mt-1 text-right">
+                        Last updated: {lastCreditRefresh.toLocaleTimeString()}
+                      </p>
+                    )}
                   </div>
-                  <Progress value={userData?.credits ? Math.min(userData.credits / 1000 * 100, 100) : 0} className="h-2" />
-                </div>
+                )}
 
                 {userData?.openRouterKeyHash ? (
                   <div className="space-y-4">
@@ -228,24 +310,22 @@ const Dashboard = () => {
                     </div>
 
                     <Button
-                      onClick={handleGetApiKey}
-                      disabled={isLoadingKey}
+                      onClick={refreshOpenRouterCredits}
+                      disabled={isRefreshingCredits}
                       className="w-full"
                     >
-                      {isLoadingKey ? "Loading..." : "Show API Key"}
+                      {isRefreshingCredits ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Refreshing...
+                        </>
+                      ) : (
+                        "Refresh OpenRouter Credits"
+                      )}
                     </Button>
-
-                    {apiKey && (
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-400 mb-2">Your API Key</p>
-                        <div className="bg-gray-900 p-3 rounded-md overflow-x-auto">
-                          <code className="text-sm break-all">{apiKey}</code>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-2">
-                          Keep this key secure. Do not share it publicly.
-                        </p>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="text-center space-y-2 p-4">
@@ -260,6 +340,65 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Subscription Status Card */}
+        <div className="mt-8">
+          <Card className="bg-gray-800 text-white border-gray-700">
+            <CardHeader>
+              <CardTitle>Subscription Status</CardTitle>
+              <CardDescription className="text-gray-400">
+                Your current subscription plan and status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Current Plan</p>
+                    <p className="text-lg font-medium">
+                      {userData?.subscription?.plan
+                        ? userData.subscription.plan.charAt(0).toUpperCase() + userData.subscription.plan.slice(1)
+                        : "No Active Plan"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">Status</p>
+                    <div className="flex items-center">
+                      <span className={`inline-block w-2 h-2 rounded-full mr-2 ${userData?.subscription?.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                      <p className="font-medium">
+                        {userData?.subscription?.status === 'active' ? 'Active' : 'Inactive'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {userData?.subscription?.expiresAt && userData.subscription.status === 'active' && (
+                  <p className="text-sm text-gray-400">
+                    Renews on {formatDate(userData.subscription.expiresAt)}
+                  </p>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                  <Button
+                    onClick={() => navigate('/pricing')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md w-full"
+                    size="lg"
+                  >
+                    {userData?.subscription?.status === 'active' ? 'Manage Subscription' : 'Get a Subscription'}
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/pricing')}
+                    variant="outline"
+                    className="border-gray-600 text-white hover:bg-gray-700 w-full"
+                  >
+                    Buy More Credits
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* API Usage Card */}
         <div className="mt-8">
           <Card className="bg-gray-800 text-white border-gray-700">
             <CardHeader>
@@ -276,13 +415,6 @@ const Dashboard = () => {
                   <li>Click "Sign In" and log in with your account</li>
                   <li>Your API key will be automatically configured for use</li>
                 </ol>
-
-                <div className="bg-gray-900 p-4 rounded-md mt-4">
-                  <p className="text-sm text-gray-400 mb-2">Need to purchase more credits?</p>
-                  <Button onClick={() => navigate('/pricing')}>
-                    View Pricing Plans
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>

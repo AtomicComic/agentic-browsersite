@@ -473,6 +473,60 @@ export async function handleStripeWebhook(req: WebhookRequest, res: WebhookRespo
           break;
         }
 
+        case 'customer.subscription.updated': {
+          console.log('⚠️ Processing subscription update event:', event.type);
+          const subscription = event.data.object as Stripe.Subscription;
+          const customerId = subscription.customer as string;
+
+          // Access raw subscription data to get properties not in the TypeScript type
+          const rawSubscription = subscription as unknown as {
+            id: string;
+            customer: string;
+            status: string;
+            cancel_at_period_end: boolean;
+            current_period_end: number;
+          };
+
+          console.log('📄 Subscription update details:', {
+            subscriptionId: rawSubscription.id,
+            customerId: rawSubscription.customer,
+            status: rawSubscription.status,
+            cancelAtPeriodEnd: rawSubscription.cancel_at_period_end,
+            currentPeriodEnd: rawSubscription.current_period_end
+          });
+
+          // If the subscription is marked to cancel at period end, update the status
+          if (rawSubscription.cancel_at_period_end) {
+            // Find user by Stripe customer ID
+            const usersSnapshot = await admin.firestore().collection('users')
+              .where('stripeCustomerId', '==', customerId)
+              .limit(1)
+              .get();
+
+            if (usersSnapshot.empty) {
+              logger.error('User not found for customer ID', { customerId, event: event.type });
+              res.status(404).json({ error: 'User not found' });
+              return;
+            }
+
+            const userDoc = usersSnapshot.docs[0];
+            const uid = userDoc.id;
+
+            // Update user subscription status to 'canceled' but keep credits until period end
+            await admin.firestore().collection('users').doc(uid).update({
+              'subscription.status': 'canceled', // New status to indicate canceled but not expired
+              'subscription.expiresAt': rawSubscription.current_period_end * 1000, // Store the exact expiration time
+            });
+
+            logger.info('Subscription marked as canceled but credits retained until period end', {
+              uid,
+              expiresAt: new Date(rawSubscription.current_period_end * 1000).toISOString()
+            });
+          }
+
+          break;
+        }
+
         case 'invoice.paid': {
           console.log('💰 Processing invoice.paid');
           const invoice = event.data.object as Stripe.Invoice;
@@ -550,10 +604,11 @@ export async function handleStripeWebhook(req: WebhookRequest, res: WebhookRespo
 
         case 'invoice.payment_failed':
         case 'customer.subscription.deleted': {
-          console.log('⚠️ Processing subscription event:', event.type);
+          console.log('⚠️ Processing subscription deletion event:', event.type);
           const subscription = event.data.object as Stripe.Subscription;
           const customerId = subscription.customer as string;
-          console.log('📄 Subscription details:', {
+
+          console.log('📄 Subscription deletion details:', {
             subscriptionId: subscription.id,
             customerId: subscription.customer,
             status: subscription.status
@@ -574,6 +629,9 @@ export async function handleStripeWebhook(req: WebhookRequest, res: WebhookRespo
           const userDoc = usersSnapshot.docs[0];
           const uid = userDoc.id;
           const userData = userDoc.data();
+
+          // Subscription period has ended, so mark as inactive and remove credits
+          console.log('Subscription period ended, removing credits');
 
           // Update user subscription status and reset subscription credits
           await admin.firestore().collection('users').doc(uid).update({
