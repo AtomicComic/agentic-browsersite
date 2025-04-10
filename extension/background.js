@@ -1,23 +1,39 @@
 // Background script for handling events and communication
 
-// Use chrome.runtime.onMessage instead of window.addEventListener
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+// Listen for messages from the website
+chrome.runtime.onMessageExternal.addListener((message, sender) => {
+  console.log('Received external message:', message, 'from:', sender);
   if (message.type === 'OPENROUTER_API_KEY') {
     const { key, userInfo, credits, subscription } = message.payload;
-    
+
+    console.log('Received auth data:', { key: '***', userInfo, credits, subscription });
+
+    if (!key) {
+      console.error('No API key provided in auth message');
+      return;
+    }
+
     // Store auth data
     chrome.storage.local.set({
       openRouterApiKey: key,
-      userInfo,
-      credits,
-      subscription,
+      userInfo: userInfo || { email: 'user@example.com' },
+      credits: credits || 0,
+      subscription: subscription || { status: 'inactive' },
       lastUpdated: Date.now()
     }).then(() => {
       // Notify popup if open
       chrome.runtime.sendMessage({
         type: 'AUTH_SUCCESS',
-        data: { apiKey: key, userInfo, credits, subscription }
+        data: {
+          apiKey: key,
+          userInfo,
+          credits,
+          subscription
+        }
       });
+      console.log('Auth data stored and popup notified');
+    }).catch(error => {
+      console.error('Error storing auth data:', error);
     });
   }
 });
@@ -51,15 +67,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         chrome.action.openPopup();
         return;
       }
-      
+
       // Otherwise, process the selected text
       const selectedText = info.selectionText;
-      
+
       // Option 1: Open popup with the text pre-filled
       chrome.storage.local.set({ pendingPrompt: selectedText }, () => {
         chrome.action.openPopup();
       });
-      
+
       // Option 2: Or directly process in the background (uncomment if preferred)
       /*
       callOpenRouter(
@@ -96,18 +112,18 @@ async function callOpenRouter(prompt, apiKey) {
       messages: [{ role: "user", content: prompt }]
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
   }
-  
+
   return await response.json();
 }
 
 // Add function to check auth and fetch data
 async function checkAuthAndFetchData() {
   const storage = await chrome.storage.local.get(['openRouterApiKey', 'userInfo', 'lastUpdated']);
-  
+
   if (!storage.openRouterApiKey || !storage.userInfo) {
     return false;
   }
@@ -126,7 +142,7 @@ async function checkAuthAndFetchData() {
     }
 
     const userData = await response.json();
-    
+
     // Update storage with latest data
     await chrome.storage.local.set({
       credits: userData.credits,

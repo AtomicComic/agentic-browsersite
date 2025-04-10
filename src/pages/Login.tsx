@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginWithEmailAndPassword, signInWithGoogle } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EmailLinkSignIn from '@/components/EmailLinkSignIn';
+import { getUserOpenRouterKey } from '@/lib/firebase-functions';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -15,18 +16,154 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { currentUser, loading } = useAuth();
+  const { currentUser, userData, loading } = useAuth();
+
+  // Check if login is from Chrome extension - this needs to be checked on every render
+  // to ensure it's properly detected even when the user is already logged in
+  const [isFromExtension, setIsFromExtension] = useState(false);
+  const [extensionId, setExtensionId] = useState<string | null>(null);
+
+  // Use an effect to check URL parameters after component mount
+  // This ensures parameters are properly detected even with direct navigation
+  useEffect(() => {
+    // Force this to run after the component is fully mounted
+    const checkUrlParams = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasExtensionParam = urlParams.has('source') && urlParams.get('source') === 'extension';
+      const extId = urlParams.get('extensionId');
+
+      console.log('Checking URL params:', {
+        search: window.location.search,
+        hasExtensionParam,
+        extId
+      });
+
+      setIsFromExtension(hasExtensionParam);
+      setExtensionId(extId);
+    };
+
+    // Run immediately and also after a short delay to ensure parameters are captured
+    checkUrlParams();
+    const timeoutId = setTimeout(checkUrlParams, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [window.location.search]);
+
+  // Function to send auth data to extension
+  const sendAuthDataToExtension = async () => {
+    console.log('Attempting to send auth data to extension...');
+    try {
+      // Get the user's OpenRouter API key
+      console.log('Fetching OpenRouter API key...');
+      const apiKey = await getUserOpenRouterKey();
+      if (!apiKey) {
+        console.error('Failed to retrieve API key');
+        return false;
+      }
+      console.log('Successfully retrieved API key');
+
+      // Get user info
+      const userInfo = {
+        email: currentUser?.email,
+        uid: currentUser?.uid,
+        displayName: currentUser?.displayName
+      };
+
+      // Get credits and subscription info
+      const credits = userData?.credits || 0;
+      const subscription = userData?.subscription || {
+        status: 'inactive',
+        plan: null,
+        expiresAt: null
+      };
+
+      // Send data to extension using chrome.runtime.sendMessage
+      if (extensionId) {
+        console.log('Preparing to send data to extension ID:', extensionId);
+        try {
+          // @ts-ignore - Chrome API not in TypeScript defs
+          chrome.runtime.sendMessage(
+            extensionId,
+            {
+              type: 'OPENROUTER_API_KEY',
+              payload: {
+                key: apiKey,
+                userInfo,
+                credits,
+                subscription
+              }
+            },
+            // Add a callback to check if the message was sent successfully
+            // @ts-ignore - Chrome API not in TypeScript defs
+            (response: any) => {
+              console.log('Extension response:', response);
+              // @ts-ignore - Chrome API not in TypeScript defs
+              if (chrome.runtime.lastError) {
+                // @ts-ignore - Chrome API not in TypeScript defs
+                console.error('Error sending message to extension:', chrome.runtime.lastError);
+              }
+            }
+          );
+
+          console.log('Sent auth data to extension:', extensionId);
+          return true;
+        } catch (err) {
+          console.error('Exception when sending message to extension:', err);
+          return false;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error sending auth data to extension:', error);
+      return false;
+    }
+  };
 
   // Use useEffect for navigation to avoid React state update issues
   React.useEffect(() => {
     console.log('Login component mounted');
     console.log('Auth state:', { currentUser, loading });
+    console.log('Extension params:', { isFromExtension, extensionId });
 
     if (!loading && currentUser) {
-      console.log('User is logged in, navigating to dashboard');
-      navigate('/dashboard');
+      console.log('User is logged in');
+
+      // If login is from extension, send auth data and close window
+      if (isFromExtension) {
+        console.log('Login is from extension, checking extensionId:', extensionId);
+        if (extensionId) {
+          console.log('Extension ID found, sending auth data...');
+          sendAuthDataToExtension().then(success => {
+            console.log('Auth data send result:', success);
+            if (success) {
+              // Show success message briefly before closing
+              toast({
+                title: "Authentication Successful",
+                description: "You can now close this window and return to the extension."
+              });
+
+              // Close the window after a short delay
+              setTimeout(() => {
+                window.close();
+              }, 2000);
+            } else {
+              // If sending auth data failed, redirect to dashboard
+              console.log('Failed to send auth data, redirecting to dashboard');
+              navigate('/dashboard');
+            }
+          });
+        } else {
+          console.log('No extension ID found, redirecting to dashboard');
+          navigate('/dashboard');
+        }
+      } else {
+        // Normal login flow - redirect to dashboard
+        console.log('Normal login flow, navigating to dashboard');
+        navigate('/dashboard');
+      }
     }
-  }, [currentUser, loading, navigate]);
+  }, [currentUser, loading, navigate, isFromExtension, extensionId, sendAuthDataToExtension, toast]);
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -71,8 +208,6 @@ const Login = () => {
     }
   };
 
-  // Check if login is from Chrome extension
-  const isFromExtension = window.location.search.includes('source=extension');
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-[#0A0C14] px-4">

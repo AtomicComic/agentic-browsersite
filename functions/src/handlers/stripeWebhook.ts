@@ -22,9 +22,11 @@ export const rawBodyMiddleware = (req: Request, res: WebhookResponse, next: () =
 
 // Credits allocated to OpenRouter (actual limit)
 const OPENROUTER_CREDITS: Record<string, number> = {
+  // Subscription plans
   'monthly-basic': 300,       // 1000 / 3.33
   'monthly-pro': 600,         // 2000 / 3.33
   'monthly-enterprise': 900,  // 3000 / 3.33
+  // One-time credit purchases
   'credits-1500': 0.1,        // 1500 / 3.33
   'credits-6000': 1800,       // 6000 / 3.33
   'credits-15000': 4500,      // 15000 / 3.33
@@ -83,17 +85,22 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
   try {
     const userRef = admin.firestore().collection('users').doc(uid);
     const userDoc = await userRef.get();
-    
+
     if (!userDoc.exists) {
       throw new Error('User document not found');
     }
-    
+
     const userData = userDoc.data() || {};
+
+    // Get purchased credits from Firestore
+    const oneTimePurchasedCredits = userData.oneTime?.openRouterCredits || 0;
+    const subscriptionCredits = userData.subscription?.openRouterCredits || 0;
 
     let currentUsage = 0;
     let currentLimit = 0;
+    let remainingOneTimeCredits = 0;
 
-    // If user has an existing key, get current usage and limit
+    // If user has an existing key, get current usage and limit from OpenRouter
     if (userData.openRouterKeyHash) {
       try {
         const response = await fetchWithTimeout(
@@ -112,14 +119,39 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
           const keyData = await response.json() as OpenRouterKeyResponse;
           currentUsage = keyData.data.usage || 0;
           currentLimit = keyData.data.limit || 0;
+
+          // Calculate remaining one-time credits
+          // If current limit > current usage, the difference is the remaining credits
+          // We need to account for subscription credits in this calculation
+          const totalRemainingCredits = Math.max(0, currentLimit - currentUsage);
+
+          // If user has an active subscription, some of those remaining credits might be subscription credits
+          if (userData.subscription?.status === 'active' && subscriptionCredits > 0) {
+            // Remaining one-time credits = total remaining - subscription credits (but not less than 0)
+            remainingOneTimeCredits = Math.max(0, totalRemainingCredits - subscriptionCredits);
+          } else {
+            // If no active subscription, all remaining credits are one-time credits
+            remainingOneTimeCredits = totalRemainingCredits;
+          }
         }
       } catch (error) {
         logger.warn('Failed to fetch existing key info, proceeding with creation', { error });
       }
+    } else {
+      // For new users with no key yet, remaining credits = purchased credits
+      remainingOneTimeCredits = oneTimePurchasedCredits;
     }
 
-    const newLimit = isSubscription ? currentUsage + addCredits : currentLimit + addCredits;
-    const updateData: Record<string, number> = {};
+    // Calculate new limit based on the type of credits being added
+    // For subscriptions: reset subscription credits to the new amount
+    // For one-time: add to existing one-time credits
+    // Total limit = usage + remaining one-time credits + subscription credits
+    const newLimit = isSubscription
+      ? currentUsage + remainingOneTimeCredits + addCredits // Reset subscription credits
+      : currentUsage + remainingOneTimeCredits + addCredits; // Add to one-time credits
+
+    // Prepare update data for Firestore
+    const updateData: Record<string, any> = {};
 
     if (userData.openRouterKeyHash) {
       // Update existing key
@@ -140,15 +172,22 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
         throw new Error(`Failed to update OpenRouter key: ${response.statusText}`);
       }
 
-      // Update credits
+      // Update credits in Firestore based on type
       if (isSubscription) {
+        // For subscription: update subscription credits
         updateData['subscription.openRouterCredits'] = addCredits;
         updateData['subscription.userCredits'] = Math.floor(addCredits * 3.33);
       } else {
-        const currentCredits = userData.credits || 0;
-        const currentOpenRouterCredits = userData.openRouterCredits || 0;
-        updateData.credits = currentCredits + Math.floor(addCredits * 3.33);
-        updateData.openRouterCredits = currentOpenRouterCredits + addCredits;
+        // For one-time: update one-time credits
+        if (userData.oneTime?.openRouterCredits !== undefined) {
+          // User already has credits in new format
+          updateData['oneTime.openRouterCredits'] = oneTimePurchasedCredits + addCredits;
+          updateData['oneTime.userCredits'] = Math.floor((oneTimePurchasedCredits + addCredits) * 3.33);
+        } else {
+          // First time purchase
+          updateData['oneTime.openRouterCredits'] = addCredits;
+          updateData['oneTime.userCredits'] = Math.floor(addCredits * 3.33);
+        }
       }
 
       await userRef.update(updateData);
@@ -185,18 +224,33 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
       }
 
       // Create new key update object
-      const keyUpdateData: Record<string, unknown> = {
+      const keyUpdateData: Record<string, any> = {
         openRouterKeyHash: data.data.hash,
         openRouterKey: data.key,
       };
 
-      // Update credits
+      // Update credits based on type
       if (isSubscription) {
-        keyUpdateData['subscription.openRouterCredits'] = addCredits;
-        keyUpdateData['subscription.userCredits'] = Math.floor(addCredits * 3.33);
+        keyUpdateData.subscription = {
+          ...userData.subscription,
+          openRouterCredits: addCredits,
+          userCredits: Math.floor(addCredits * 3.33),
+        };
       } else {
-        keyUpdateData.credits = Math.floor(addCredits * 3.33);
-        keyUpdateData.openRouterCredits = addCredits;
+        // Update one-time credits
+        if (userData.oneTime?.openRouterCredits !== undefined) {
+          // User already has credits
+          keyUpdateData.oneTime = {
+            openRouterCredits: oneTimePurchasedCredits + addCredits,
+            userCredits: Math.floor((oneTimePurchasedCredits + addCredits) * 3.33),
+          };
+        } else {
+          // First time purchase
+          keyUpdateData.oneTime = {
+            openRouterCredits: addCredits,
+            userCredits: Math.floor(addCredits * 3.33),
+          };
+        }
       }
 
       await userRef.update(keyUpdateData);
@@ -519,14 +573,16 @@ export async function handleStripeWebhook(req: WebhookRequest, res: WebhookRespo
 
           const userDoc = usersSnapshot.docs[0];
           const uid = userDoc.id;
+          const userData = userDoc.data();
 
-          // Update user subscription status
+          // Update user subscription status and reset subscription credits
           await admin.firestore().collection('users').doc(uid).update({
             'subscription.status': 'inactive',
+            'subscription.openRouterCredits': 0, // Expire subscription credits
+            'subscription.userCredits': 0,
           });
 
           // Handle OpenRouter key adjustment
-          const userData = userDoc.data();
           if (userData.openRouterKeyHash) {
             const PROVISIONING_API_KEY = process.env.OPENROUTER_PROVISIONING_KEY;
 
@@ -556,43 +612,35 @@ export async function handleStripeWebhook(req: WebhookRequest, res: WebhookRespo
 
               const keyData = await keyResponse.json() as OpenRouterKeyResponse;
               const currentUsage = keyData.data.usage || 0;
+              const currentLimit = keyData.data.limit || 0;
 
-              // If one-time credits remain, set limit to usage + remaining one-time credits
-              const remainingOneTimeCredits = userData.openRouterCredits || 0;
+              // Calculate remaining one-time credits
+              // If current limit > current usage, the difference is the remaining credits
+              // Since subscription is now inactive, we need to remove subscription credits from the calculation
+              const totalRemainingCredits = Math.max(0, currentLimit - currentUsage);
 
-              if (remainingOneTimeCredits > 0) {
-                // Update key with new limit based only on one-time credits
-                await fetchWithTimeout(
-                  `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
-                  {
-                    method: 'PATCH',
-                    headers: {
-                      Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      limit: currentUsage + remainingOneTimeCredits,
-                    }),
+              // The subscription credits that were previously active are now expired
+              const previousSubscriptionCredits = userData.subscription?.openRouterCredits || 0;
+
+              // Calculate remaining one-time credits by subtracting expired subscription credits
+              // but not less than 0 (in case user used more than their subscription credits)
+              const remainingOneTimeCredits = Math.max(0, totalRemainingCredits - previousSubscriptionCredits);
+
+              // Set limit to usage + remaining one-time credits only (subscription credits expired)
+              await fetchWithTimeout(
+                `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
+                {
+                  method: 'PATCH',
+                  headers: {
+                    Authorization: `Bearer ${PROVISIONING_API_KEY}`,
+                    'Content-Type': 'application/json',
                   },
-                  10000
-                );
-              } else {
-                // If no one-time credits, just set the limit to current usage
-                await fetchWithTimeout(
-                  `https://openrouter.ai/api/v1/keys/${userData.openRouterKeyHash}`,
-                  {
-                    method: 'PATCH',
-                    headers: {
-                      Authorization: `Bearer ${PROVISIONING_API_KEY}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      limit: currentUsage,
-                    }),
-                  },
-                  10000
-                );
-              }
+                  body: JSON.stringify({
+                    limit: currentUsage + remainingOneTimeCredits,
+                  }),
+                },
+                10000
+              );
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
               logger.error('Error updating OpenRouter key limits', { error: errorMessage, uid });

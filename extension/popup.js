@@ -18,7 +18,7 @@ const loggedInView = document.getElementById('logged-in-view');
 // Check authentication state on popup open
 document.addEventListener('DOMContentLoaded', async () => {
   const storage = await chrome.storage.local.get(['openRouterApiKey', 'userInfo', 'lastUpdated']);
-  
+
   if (!storage.openRouterApiKey || !storage.userInfo) {
     showLoggedOutView();
     return;
@@ -56,14 +56,14 @@ function checkAuthState() {
 function showLoggedInView(userInfo, credits, subscription) {
   document.getElementById('login-view').style.display = 'none';
   document.getElementById('logged-in-view').style.display = 'block';
-  
+
   // Update UI with user info
   document.getElementById('user-email').textContent = userInfo.email;
   document.getElementById('credits').textContent = credits;
-  
+
   // Show subscription status if active
   if (subscription?.status === 'active') {
-    document.getElementById('subscription-status').textContent = 
+    document.getElementById('subscription-status').textContent =
       `Active ${subscription.plan} subscription`;
   }
 }
@@ -80,9 +80,12 @@ function openLoginWindow() {
   const height = 600;
   const left = (screen.width - width) / 2;
   const top = (screen.height - height) / 2;
-  
+
+  // Get the extension ID to pass to the login page
+  const extensionId = chrome.runtime.id;
+
   chrome.windows.create({
-    url: 'https://agenticbrowser.com/login?source=extension',
+    url: `https://agenticbrowser.com/login?source=extension&extensionId=${extensionId}`,
     type: 'popup',
     width,
     height,
@@ -108,28 +111,31 @@ function openPricingPage() {
 
 // Open dashboard page
 function openDashboardPage() {
+  // Get the extension ID to pass to the dashboard page
+  const extensionId = chrome.runtime.id;
+
   chrome.tabs.create({
-    url: `${API_BASE_URL}/dashboard`
+    url: `${API_BASE_URL}/dashboard?source=extension&extensionId=${extensionId}`
   });
 }
 
 // Send prompt to OpenRouter
 async function sendPrompt() {
   const promptText = promptInput.value.trim();
-  
+
   if (!promptText) {
     return;
   }
-  
+
   // Clear input
   promptInput.value = '';
-  
+
   // Add user message to chat
   addMessageToChat('user', promptText);
-  
+
   // Show loading indicator
   const loadingId = addLoadingIndicator();
-  
+
   // Get API key from storage
   chrome.storage.local.get(['openRouterApiKey'], async (result) => {
     if (!result.openRouterApiKey) {
@@ -137,15 +143,15 @@ async function sendPrompt() {
       addMessageToChat('error', 'You need to sign in to use this feature.');
       return;
     }
-    
+
     try {
       const response = await callOpenRouter(promptText, result.openRouterApiKey);
       removeLoadingIndicator(loadingId);
-      
+
       // Add AI response to chat
       const aiResponse = response.choices[0].message.content;
       addMessageToChat('ai', aiResponse);
-      
+
       // Update credits display if available
       if (response.usage && response.usage.total_tokens) {
         // Update credits display - this is approximate, you may want to fetch the actual credits from your backend
@@ -179,12 +185,12 @@ async function callOpenRouter(prompt, apiKey) {
       messages: [{ role: "user", content: prompt }]
     }),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error?.message || `API error: ${response.status}`);
   }
-  
+
   return await response.json();
 }
 
@@ -194,10 +200,10 @@ function addMessageToChat(role, content) {
   if (chatMessages.querySelector('.text-gray-400.italic')) {
     chatMessages.innerHTML = '';
   }
-  
+
   const messageElement = document.createElement('div');
   messageElement.className = 'mb-3';
-  
+
   if (role === 'user') {
     messageElement.innerHTML = `
       <div class="flex justify-end">
@@ -223,7 +229,7 @@ function addMessageToChat(role, content) {
       </div>
     `;
   }
-  
+
   chatMessages.appendChild(messageElement);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -243,7 +249,7 @@ function addLoadingIndicator() {
       </div>
     </div>
   `;
-  
+
   chatMessages.appendChild(loadingElement);
   chatMessages.scrollTop = chatMessages.scrollHeight;
   return id;
