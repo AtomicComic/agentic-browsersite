@@ -85,10 +85,10 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link to="/features" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                <Link to="/" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
                   isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
                 }`}>Features</Link>
-                <Link to="/use-cases" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
+                <Link to="/" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
                   isScrolled ? 'text-white/60 hover:text-white' : 'text-white/80 hover:text-white'
                 }`}>Use Cases</Link>
                 <Link to="/" className={`transition-colors text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] ${
@@ -179,14 +179,14 @@ const Navbar = () => {
             ) : (
               <>
                 <Link
-                  to="/features"
+                  to="/"
                   className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Features
                 </Link>
                 <Link
-                  to="/use-cases"
+                  to="/"
                   className="text-white/60 hover:text-white transition-colors px-4 py-2 text-sm uppercase tracking-wide font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

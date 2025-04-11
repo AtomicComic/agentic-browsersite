@@ -57,6 +57,8 @@ export async function getUserKeyCallable(uid: string): Promise<{
       }
 
       const data = await response.json();
+      logger.info('OpenRouter API response:', { data });
+
       const creditInfo: OpenRouterCreditInfo = {
         credits: {
           used: data.data.usage,
@@ -67,6 +69,7 @@ export async function getUserKeyCallable(uid: string): Promise<{
         rateLimit: data.data.rate_limit
       };
 
+      logger.info('Returning credit info:', { creditInfo });
       return { apiKey, credits: creditInfo };
     } catch (creditError) {
       logger.error('Error checking OpenRouter credits', {

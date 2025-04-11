@@ -49,6 +49,8 @@ export const createCheckoutSession = onCall({
   ...commonConfig,
   cors: corsConfig,
   secrets: [stripeSecretKey],
+  // Temporarily disable App Check until frontend is properly configured
+  // enforceAppCheck: true, // Enforce App Check for security
   cpu: 1,  // Standard CPU allocation
 }, async (request) => {
   if (!request.auth) {
@@ -92,6 +94,8 @@ export const getUserKey = onCall({
   ...commonConfig,
   cors: corsConfig,
   secrets: [openRouterProvisioningKey],
+  // Temporarily disable App Check until frontend is properly configured
+  // enforceAppCheck: true, // Enforce App Check for security
   cpu: 1,  // Standard CPU allocation
 }, async (request) => {
   if (!request.auth) {

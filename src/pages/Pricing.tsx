@@ -18,7 +18,6 @@ const subscriptionPlans = [
     price: 8.99,
     interval: 'month',
     credits: 1000,
-    openRouterCredit: 300, // Actual OpenRouter credit allocation (1000/3.33)
     features: [
       '1000 credits per month',
       'Credits reset monthly',
@@ -33,7 +32,6 @@ const subscriptionPlans = [
     price: 14.99,
     interval: 'month',
     credits: 2000,
-    openRouterCredit: 600, // Actual OpenRouter credit allocation (2000/3.33)
     features: [
       '2000 credits per month',
       'Credits reset monthly',
@@ -49,14 +47,11 @@ const subscriptionPlans = [
     price: 24.99,
     interval: 'month',
     credits: 3000,
-    openRouterCredit: 900, // Actual OpenRouter credit allocation (3000/3.33)
     features: [
       '3000 credits per month',
       'Credits reset monthly',
       'Access to all models including GPT-4',
       'Priority email support',
-      'Advanced usage analytics',
-      'Team member access',
     ],
     popular: false,
   },
@@ -68,7 +63,6 @@ const oneTimePlans = [
     name: '1500 Credits',
     price: 14.99,
     credits: 1500,
-    openRouterCredit: 450, // Actual OpenRouter credit allocation (1500/3.33)
     features: [
       '1500 total credits',
       'Credits never expire',
@@ -82,7 +76,6 @@ const oneTimePlans = [
     name: '6000 Credits',
     price: 49.99,
     credits: 6000,
-    openRouterCredit: 1800, // Actual OpenRouter credit allocation (6000/3.33)
     features: [
       '6000 total credits',
       'Credits never expire',
@@ -97,7 +90,6 @@ const oneTimePlans = [
     name: '15000 Credits',
     price: 99.99,
     credits: 15000,
-    openRouterCredit: 4500, // Actual OpenRouter credit allocation (15000/3.33)
     features: [
       '15000 total credits',
       'Credits never expire',
@@ -111,7 +103,7 @@ const oneTimePlans = [
 
 const Pricing = () => {
   const [selectedTab, setSelectedTab] = useState('subscription');
-  const { currentUser, userData, loading } = useAuth();
+  const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -164,10 +156,10 @@ const Pricing = () => {
     <div className="min-h-screen bg-[#0A0C14] text-white">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-16 mt-20">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold">Pricing Plans</h1>
-          <p className="mt-4 text-xl text-gray-400">
+          <p className="mt-4 text-xl text-white">
             Choose the plan that works best for you
           </p>
         </div>
@@ -178,7 +170,7 @@ const Pricing = () => {
           onValueChange={setSelectedTab}
           className="w-full max-w-3xl mx-auto"
         >
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-10 bg-gray-800 p-1 rounded-xl border border-gray-700">
             <TabsTrigger value="subscription">Monthly Subscription</TabsTrigger>
             <TabsTrigger value="one-time">One-time Purchase</TabsTrigger>
           </TabsList>
@@ -188,39 +180,39 @@ const Pricing = () => {
               {subscriptionPlans.map((plan) => (
                 <Card
                   key={plan.id}
-                  className={`border ${plan.popular ? 'border-blue-500' : 'border-gray-700'} bg-gray-800`}
+                  className={`border ${plan.popular ? 'border-[#66B3FF] shadow-lg shadow-[#66B3FF]/20' : 'border-gray-600'} bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl hover:translate-y-[-4px] transition-all duration-300`}
                 >
                   <CardHeader>
                     {plan.popular && (
-                      <Badge className="w-fit mb-2 bg-blue-500 hover:bg-blue-600">
+                      <Badge className="w-fit mb-2 bg-[#66B3FF] hover:bg-[#66B3FF]/90">
                         Most Popular
                       </Badge>
                     )}
-                    <CardTitle>{plan.name}</CardTitle>
+                    <CardTitle className="text-white text-2xl font-bold mb-2">{plan.name}</CardTitle>
                     <div className="mt-2">
-                      <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-400">/{plan.interval}</span>
+                      <span className="text-3xl font-bold text-white">${plan.price}</span>
+                      <span className="text-white opacity-80">/{plan.interval}</span>
                     </div>
-                    <p className="text-blue-400 font-medium mt-2">
-                      {plan.credits} credits per month
-                    </p>
+
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start">
                           <Check className="h-5 w-5 mr-2 text-green-500 shrink-0" />
-                          <span className="text-gray-300">{feature}</span>
+                          <span className="text-white">{feature}</span>
                         </li>
                       ))}
                     </ul>
                   </CardContent>
                   <CardFooter>
                     <Button
-                      className={`w-full ${plan.popular ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
+                      className={`w-full font-medium py-6 text-white ${plan.popular
+                        ? 'bg-[#66B3FF] hover:bg-[#66B3FF]/90 shadow-md shadow-[#66B3FF]/20'
+                        : 'bg-gray-700 hover:bg-gray-600 border border-gray-600'}`}
                       onClick={() => handlePurchase(plan.id, true)}
                     >
-                      Subscribe
+                      Subscribe Now
                     </Button>
                   </CardFooter>
                 </Card>
@@ -233,39 +225,39 @@ const Pricing = () => {
               {oneTimePlans.map((plan) => (
                 <Card
                   key={plan.id}
-                  className={`border ${plan.popular ? 'border-blue-500' : 'border-gray-700'} bg-gray-800`}
+                  className={`border ${plan.popular ? 'border-[#66B3FF] shadow-lg shadow-[#66B3FF]/20' : 'border-gray-600'} bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl hover:translate-y-[-4px] transition-all duration-300`}
                 >
                   <CardHeader>
                     {plan.popular && (
-                      <Badge className="w-fit mb-2 bg-blue-500 hover:bg-blue-600">
+                      <Badge className="w-fit mb-2 bg-[#66B3FF] hover:bg-[#66B3FF]/90">
                         Most Popular
                       </Badge>
                     )}
-                    <CardTitle>{plan.name}</CardTitle>
+                    <CardTitle className="text-white text-2xl font-bold mb-2">{plan.name}</CardTitle>
                     <div className="mt-2">
-                      <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-400"> one-time</span>
+                      <span className="text-3xl font-bold text-white">${plan.price}</span>
+                      <span className="text-white opacity-80"> one-time</span>
                     </div>
-                    <p className="text-blue-400 font-medium mt-2">
-                      {plan.credits} total credits
-                    </p>
+
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start">
                           <Check className="h-5 w-5 mr-2 text-green-500 shrink-0" />
-                          <span className="text-gray-300">{feature}</span>
+                          <span className="text-white">{feature}</span>
                         </li>
                       ))}
                     </ul>
                   </CardContent>
                   <CardFooter>
                     <Button
-                      className={`w-full ${plan.popular ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
+                      className={`w-full font-medium py-6 text-white ${plan.popular
+                        ? 'bg-[#66B3FF] hover:bg-[#66B3FF]/90 shadow-md shadow-[#66B3FF]/20'
+                        : 'bg-gray-700 hover:bg-gray-600 border border-gray-600'}`}
                       onClick={() => handlePurchase(plan.id, false)}
                     >
-                      Purchase
+                      Purchase Now
                     </Button>
                   </CardFooter>
                 </Card>
@@ -274,12 +266,23 @@ const Pricing = () => {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-12 text-center text-gray-400 max-w-2xl mx-auto">
-          <h3 className="text-xl font-semibold text-white mb-4">How Credits Work</h3>
-          <p className="mb-4">
-            Subscription credits reset at the beginning of each billing cycle. One-time purchase credits never expire and are added to your account balance.
-          </p>
-          <p>
+        <div className="mt-16 text-center max-w-2xl mx-auto bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-xl border border-gray-600 shadow-lg">
+          <h3 className="text-2xl font-bold text-white mb-6">How Credits Work</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+            <div className="bg-gray-800/50 p-5 rounded-lg border border-gray-700">
+              <h4 className="text-lg font-semibold text-[#66B3FF] mb-3">Subscription Credits</h4>
+              <p className="text-white">
+                Reset at the beginning of each billing cycle. Use these first before one-time credits.
+              </p>
+            </div>
+            <div className="bg-gray-800/50 p-5 rounded-lg border border-gray-700">
+              <h4 className="text-lg font-semibold text-[#66B3FF] mb-3">One-Time Credits</h4>
+              <p className="text-white">
+                Never expire and are added to your account balance. Used after subscription credits.
+              </p>
+            </div>
+          </div>
+          <p className="text-white mt-6 pt-4 border-t border-gray-700">
             Different models consume different amounts of credits. Basic models like GPT-3.5 use 1 credit per request, while advanced models like GPT-4 may use 5-10 credits per request depending on complexity.
           </p>
         </div>

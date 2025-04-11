@@ -4,7 +4,7 @@ import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getUserOpenRouterKey, OpenRouterCreditInfo } from './firebase-functions';
 
-// User type including Stripe customer ID and OpenRouter key information
+// User type including Stripe customer ID and API key information
 interface UserData {
   uid: string;
   email: string | null;
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  // Function to get the user's OpenRouter API key and credits from Firebase Function
+  // Function to get the user's Agentic Browser API key and credits from Firebase Function
   const getUserOpenRouterApiKey = async (): Promise<{ apiKey: string; credits?: OpenRouterCreditInfo } | null> => {
     if (!currentUser) {
       return null;
@@ -100,21 +100,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Function to refresh OpenRouter credits
+  // Function to refresh Agentic Browser credits
   const refreshOpenRouterCredits = async (): Promise<void> => {
     if (!currentUser) return;
 
     try {
       const result = await getUserOpenRouterApiKey();
+      console.log('Agentic Browser API result:', result);
       if (result?.credits) {
+        console.log('Setting Agentic Browser credits:', result.credits);
         setOpenRouterCredits(result.credits);
+      } else {
+        console.log('No credits found in result');
       }
     } catch (error) {
-      console.error('Error refreshing OpenRouter credits:', error);
+      console.error('Error refreshing Agentic Browser credits:', error);
     }
   };
 
-  // Fetch OpenRouter credits when user logs in
+  // Fetch Agentic Browser credits when user logs in
   useEffect(() => {
     if (currentUser && userData?.openRouterKeyHash && !openRouterCredits) {
       refreshOpenRouterCredits();
