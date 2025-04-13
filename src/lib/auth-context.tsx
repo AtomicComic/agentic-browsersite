@@ -106,15 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const result = await getUserOpenRouterApiKey();
-      console.log('Agentic Browser API result:', result);
       if (result?.credits) {
-        console.log('Setting Agentic Browser credits:', result.credits);
         setOpenRouterCredits(result.credits);
-      } else {
-        console.log('No credits found in result');
       }
     } catch (error) {
-      console.error('Error refreshing Agentic Browser credits:', error);
+      // Handle error silently
     }
   };
 

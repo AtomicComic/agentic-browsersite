@@ -47,11 +47,7 @@ const Dashboard = () => {
       const hasExtensionParam = urlParams.has('source') && urlParams.get('source') === 'extension';
       const extId = urlParams.get('extensionId');
 
-      console.log('Dashboard - Checking URL params:', {
-        search: window.location.search,
-        hasExtensionParam,
-        extId
-      });
+      // Check URL parameters silently
 
       setIsFromExtension(hasExtensionParam);
       setExtensionId(extId);
@@ -70,7 +66,6 @@ const Dashboard = () => {
       navigate('/login');
     } else if (!loading && currentUser && isFromExtension && extensionId) {
       // If user is logged in and coming from extension, automatically get API key
-      console.log('User is logged in and coming from extension, getting API key...');
       handleGetApiKey();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,12 +80,12 @@ const Dashboard = () => {
 
       // If we're in the Chrome extension context, send the key back to the extension
       if (isFromExtension) {
-        console.log('Sending API key to extension...');
+        // Send API key to extension
 
         // Get the API key
         const apiKeyResult = await getUserOpenRouterApiKey();
         if (!apiKeyResult) {
-          console.error('Failed to get API key for extension');
+          // Failed to get API key
           return;
         }
 
@@ -127,12 +122,11 @@ const Dashboard = () => {
               },
               // Add a callback to check if the message was sent successfully
               // @ts-ignore - Chrome API not in TypeScript defs
-              (response: any) => {
-                console.log('Extension response:', response);
+              (_response: any) => {
+                // Handle any Chrome runtime errors silently
                 // @ts-ignore - Chrome API not in TypeScript defs
                 if (chrome.runtime.lastError) {
-                  // @ts-ignore - Chrome API not in TypeScript defs
-                  console.error('Error sending message to extension:', chrome.runtime.lastError);
+                  // Error handled silently
                 }
               }
             );
@@ -144,14 +138,13 @@ const Dashboard = () => {
 
             return;
           } catch (err) {
-            console.error('Exception when sending message to extension:', err);
-            // Fall back to window.postMessage
+            // Fall back to window.postMessage if chrome.runtime.sendMessage fails
           }
         }
 
         // Method 2: Fallback to window.postMessage
         if (window.opener) {
-          console.log('Sending API key via window.postMessage');
+          // Send API key via window.postMessage
           window.opener.postMessage({
             type: 'OPENROUTER_API_KEY',
             payload: {

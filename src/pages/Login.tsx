@@ -32,11 +32,7 @@ const Login = () => {
       const hasExtensionParam = urlParams.has('source') && urlParams.get('source') === 'extension';
       const extId = urlParams.get('extensionId');
 
-      console.log('Checking URL params:', {
-        search: window.location.search,
-        hasExtensionParam,
-        extId
-      });
+      // Check URL parameters silently
 
       setIsFromExtension(hasExtensionParam);
       setExtensionId(extId);
@@ -122,20 +118,13 @@ const Login = () => {
 
   // Use useEffect for navigation to avoid React state update issues
   React.useEffect(() => {
-    console.log('Login component mounted');
-    console.log('Auth state:', { currentUser, loading });
-    console.log('Extension params:', { isFromExtension, extensionId });
+    // Check authentication state silently
 
     if (!loading && currentUser) {
-      console.log('User is logged in');
-
       // If login is from extension, send auth data and close window
       if (isFromExtension) {
-        console.log('Login is from extension, checking extensionId:', extensionId);
         if (extensionId) {
-          console.log('Extension ID found, sending auth data...');
           sendAuthDataToExtension().then(success => {
-            console.log('Auth data send result:', success);
             if (success) {
               // Show success message briefly before closing
               toast({
@@ -149,17 +138,14 @@ const Login = () => {
               }, 2000);
             } else {
               // If sending auth data failed, redirect to dashboard
-              console.log('Failed to send auth data, redirecting to dashboard');
               navigate('/dashboard');
             }
           });
         } else {
-          console.log('No extension ID found, redirecting to dashboard');
           navigate('/dashboard');
         }
       } else {
         // Normal login flow - redirect to dashboard
-        console.log('Normal login flow, navigating to dashboard');
         navigate('/dashboard');
       }
     }
@@ -177,11 +163,11 @@ const Login = () => {
 
     try {
       setIsLoading(true);
-      console.log("Attempting login with:", email); // Debug log
+      // Attempt login with email and password
       await loginWithEmailAndPassword(email, password);
       navigate('/dashboard');
     } catch (error: any) {
-      console.error("Login error:", error); // Debug log
+      // Handle login error
       toast({
         title: "Login Failed",
         description: error.message || "Invalid email or password.",

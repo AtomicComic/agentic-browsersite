@@ -4,7 +4,7 @@ import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -28,15 +28,14 @@ const db = getFirestore(app);
 const functions = getFunctions(app, 'us-central1');
 const googleProvider = new GoogleAuthProvider();
 
-// Initialize App Check with reCAPTCHA v3
+// Initialize App Check with reCAPTCHA Enterprise
 // Get the reCAPTCHA site key from environment variables
 const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 // Initialize App Check
 const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-  isTokenAutoRefreshEnabled: true
+  provider: new ReCaptchaEnterpriseProvider(recaptchaSiteKey),
+  isTokenAutoRefreshEnabled: true // Set to true to allow auto-refresh.
 });
-
 // Add scopes for Google provider
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
