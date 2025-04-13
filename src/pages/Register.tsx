@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/auth-context';
+import { provisionNewUserApiKey } from '@/lib/firebase-functions';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -45,7 +46,21 @@ const Register = () => {
 
     try {
       setIsLoading(true);
-      await registerWithEmailAndPassword(email, password);
+      // Register the user
+      const user = await registerWithEmailAndPassword(email, password);
+
+      // Explicitly provision a new API key with 10 cents of credit
+      try {
+        await provisionNewUserApiKey();
+        toast({
+          title: "Welcome!",
+          description: "Your account has been created with 10¢ in free credits.",
+        });
+      } catch (provisionError) {
+        console.error("Error provisioning API key:", provisionError);
+        // Don't show error to user, just log it
+      }
+
       navigate('/dashboard');
     } catch (error: any) {
       toast({
@@ -61,7 +76,21 @@ const Register = () => {
   const handleGoogleSignUp = async () => {
     try {
       setIsLoading(true);
-      await signInWithGoogle();
+      // Sign in with Google
+      const user = await signInWithGoogle();
+
+      // Explicitly provision a new API key with 10 cents of credit
+      try {
+        await provisionNewUserApiKey();
+        toast({
+          title: "Welcome!",
+          description: "Your account has been created with 10¢ in free credits.",
+        });
+      } catch (provisionError) {
+        console.error("Error provisioning API key:", provisionError);
+        // Don't show error to user, just log it
+      }
+
       navigate('/dashboard');
     } catch (error: any) {
       toast({
