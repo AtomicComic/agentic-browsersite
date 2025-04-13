@@ -24,7 +24,7 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password || !confirmPassword) {
       toast({
         title: "Error",
@@ -80,7 +80,7 @@ const Register = () => {
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
           <CardDescription>
-            Sign up to access AI models and manage your API keys
+            Sign up to access AI models and manage your API keys. New users get 10¢ in free credits!
           </CardDescription>
         </CardHeader>
         <CardContent>

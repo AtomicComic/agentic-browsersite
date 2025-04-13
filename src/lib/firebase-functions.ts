@@ -11,6 +11,10 @@ interface UserKeyResponse {
   credits?: OpenRouterCreditInfo;
 }
 
+interface ProvisionKeyResponse {
+  success: boolean;
+}
+
 /**
  * Interface for OpenRouter credit information
  */
@@ -90,6 +94,30 @@ export async function getUserOpenRouterKey(): Promise<{ apiKey: string; credits?
     };
   } catch (error) {
     console.error('Error retrieving API key and credits:', error);
+    throw error;
+  }
+}
+
+/**
+ * Provisions a new OpenRouter API key for the current user with 10 cents of credit
+ *
+ * @returns Promise with success status
+ */
+export async function provisionNewUserApiKey(): Promise<boolean> {
+  try {
+    // Create a callable function reference
+    const provisionKeyCallable = httpsCallable<null, ProvisionKeyResponse>(
+      functions,
+      'provisionNewUserKey'
+    );
+
+    // Call the function (no parameters needed)
+    const result = await provisionKeyCallable();
+
+    // Return success status
+    return result.data.success;
+  } catch (error) {
+    console.error('Error provisioning new API key:', error);
     throw error;
   }
 }

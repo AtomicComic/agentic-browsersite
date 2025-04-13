@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getUserOpenRouterKey, OpenRouterCreditInfo } from './firebase-functions';
+import { getUserOpenRouterKey, provisionNewUserApiKey, OpenRouterCreditInfo } from './firebase-functions';
 
 // User type including Stripe customer ID and API key information
 interface UserData {
@@ -70,6 +70,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             await setDoc(userDocRef, newUserData);
             setUserData(newUserData);
+
+            // Provision a new API key with 10 cents of credit for the new user
+            try {
+              await provisionNewUserApiKey();
+              console.log('Successfully provisioned new API key for user');
+            } catch (error) {
+              console.error('Error provisioning new API key:', error);
+            }
           }
         } catch (error) {
           console.error("Error fetching user data:", error);

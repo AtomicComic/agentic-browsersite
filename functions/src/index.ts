@@ -20,6 +20,7 @@ import { stripeSecretKey, stripeWebhookSecret, openRouterProvisioningKey } from 
 import * as createCheckoutHandler from './handlers/createCheckout';
 import * as getUserKeyHandler from './handlers/getUserKey';
 import { handleStripeWebhook } from './handlers/stripeWebhook';
+import { provisionNewUserApiKey } from './handlers/onUserCreate';
 
 // Initialize Admin SDK
 if (admin.apps.length === 0) {
@@ -149,10 +150,34 @@ export const stripeWebhook = onRequest({
   }
 });
 
+/**
+ * Callable: provisionNewUserKey
+ * No data needed, only auth. Creates a new OpenRouter API key with 10 cents of credit
+ */
+export const provisionNewUserKey = onCall({
+  ...commonConfig,
+  cors: corsConfig,
+  secrets: [openRouterProvisioningKey],
+  cpu: 1,  // Standard CPU allocation
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated.');
+  }
 
+  try {
+    const uid = request.auth.uid;
+    const userRecord = await admin.auth().getUser(uid);
 
+    // Provision a new API key for the user
+    await provisionNewUserApiKey(userRecord);
 
-
-
+    logger.info('Successfully provisioned API key for user', { uid });
+    return { success: true };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error in provisionNewUserKey', { error: errorMessage, auth: request.auth?.uid });
+    throw new HttpsError('internal', errorMessage);
+  }
+});
 
 
