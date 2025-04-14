@@ -7,13 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { createCustomerPortalSession } from '@/lib/firebase-functions';
+import { useToast } from '@/components/ui/use-toast';
 // No need to import credit info as we're using it from the auth context
 
 const Dashboard = () => {
   const { currentUser, userData, loading, openRouterCredits, refreshOpenRouterCredits, getUserOpenRouterApiKey } = useAuth();
   const [isRefreshingCredits, setIsRefreshingCredits] = useState(false);
   const [lastCreditRefresh, setLastCreditRefresh] = useState<Date | null>(null);
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Check if dashboard is opened from Chrome extension
   const [isFromExtension, setIsFromExtension] = useState(false);
@@ -175,6 +179,31 @@ const Dashboard = () => {
     });
   };
 
+  // Handle subscription management
+  const handleManageSubscription = async () => {
+    if (!currentUser) return;
+
+    try {
+      setIsLoadingPortal(true);
+      // Create return URL to dashboard
+      const returnUrl = `${window.location.origin}/dashboard`;
+
+      // Get customer portal URL
+      const portalUrl = await createCustomerPortalSession(returnUrl);
+
+      // Redirect to Stripe customer portal
+      window.location.href = portalUrl;
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast({
+        title: "Error",
+        description: "Could not open subscription management portal. Please try again later.",
+        variant: "destructive",
+      });
+      setIsLoadingPortal(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0A0C14] text-white">
@@ -253,10 +282,21 @@ const Dashboard = () => {
                   )}
 
                   <Button
-                    onClick={() => navigate('/pricing')}
+                    onClick={userData?.subscription?.status === 'active' ? handleManageSubscription : () => navigate('/pricing')}
                     className="w-full py-5 font-medium text-sm bg-[#66B3FF] hover:bg-[#66B3FF]/90 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-lg"
+                    disabled={isLoadingPortal}
                   >
-                    {userData?.subscription?.status === 'active' ? 'Manage Subscription' : 'Get a Subscription'}
+                    {isLoadingPortal ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading...
+                      </>
+                    ) : (
+                      userData?.subscription?.status === 'active' ? 'Manage Subscription' : 'Get a Subscription'
+                    )}
                   </Button>
                 </div>
 

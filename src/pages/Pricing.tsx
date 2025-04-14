@@ -283,7 +283,7 @@ const Pricing = () => {
             </div>
           </div>
           <p className="text-white mt-6 pt-4 border-t border-gray-700">
-            Different models consume different amounts of credits. Basic models like GPT-3.5 use 1 credit per request, while advanced models like GPT-4 may use 5-10 credits per request depending on complexity.
+            Different tasks will use different amounts of credits but generally, 1000 credits would get you around 1.5-2 hours of continuous usage. 
           </p>
         </div>
       </div>

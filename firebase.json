@@ -48,6 +48,14 @@
         }
       },
       {
+        "source": "/api/createCustomerPortal",
+        "function": {
+          "functionId": "createCustomerPortal",
+          "region": "us-central1",
+          "pinTag": true
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -64,19 +64,22 @@ const Register = () => {
       // Hide minting key message
       setIsMintingKey(false);
 
-      if (keyProvisioned) {
-        console.log('API key successfully provisioned');
-        toast({
-          title: "Welcome!",
-          description: "Your account has been created with 10¢ in free credits.",
-        });
-      } else {
-        console.log('API key provisioning failed or was skipped');
-        // Still show welcome message but without mentioning credits
-        toast({
-          title: "Welcome!",
-          description: "Your account has been created successfully.",
-        });
+      // Only show welcome message for new users (not existing users)
+      if (user.metadata.creationTime === user.metadata.lastSignInTime) {
+        if (keyProvisioned) {
+          console.log('API key successfully provisioned');
+          toast({
+            title: "Welcome!",
+            description: "Your account has been created with 10¢ in free credits.",
+          });
+        } else {
+          console.log('API key provisioning failed or was skipped');
+          // Still show welcome message but without mentioning credits
+          toast({
+            title: "Welcome!",
+            description: "Your account has been created successfully.",
+          });
+        }
       }
 
       navigate('/dashboard');
@@ -111,19 +114,22 @@ const Register = () => {
       // Hide minting key message
       setIsMintingKey(false);
 
-      if (keyProvisioned) {
-        console.log('API key successfully provisioned for Google user');
-        toast({
-          title: "Welcome!",
-          description: "Your account has been created with 10¢ in free credits.",
-        });
-      } else {
-        console.log('API key provisioning failed or was skipped for Google user');
-        // Still show welcome message but without mentioning credits
-        toast({
-          title: "Welcome!",
-          description: "Your account has been created successfully.",
-        });
+      // Only show welcome message for new users (not existing users)
+      if (user.metadata.creationTime === user.metadata.lastSignInTime) {
+        if (keyProvisioned) {
+          console.log('API key successfully provisioned for Google user');
+          toast({
+            title: "Welcome!",
+            description: "Your account has been created with 10¢ in free credits.",
+          });
+        } else {
+          console.log('API key provisioning failed or was skipped for Google user');
+          // Still show welcome message but without mentioning credits
+          toast({
+            title: "Welcome!",
+            description: "Your account has been created successfully.",
+          });
+        }
       }
 
       navigate('/dashboard');

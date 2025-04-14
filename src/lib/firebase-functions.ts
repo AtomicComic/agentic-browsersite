@@ -127,4 +127,29 @@ export async function provisionNewUserApiKey(): Promise<boolean> {
   }
 }
 
+/**
+ * Creates a Stripe customer portal session for managing subscriptions
+ *
+ * @param returnUrl - URL to redirect to after the customer portal session
+ * @returns Promise with the customer portal URL
+ */
+export async function createCustomerPortalSession(returnUrl: string): Promise<string> {
+  try {
+    // Create a callable function reference
+    const createPortalCallable = httpsCallable<
+      { returnUrl: string },
+      { url: string }
+    >(functions, 'createCustomerPortal');
+
+    // Call the function with the return URL
+    const result = await createPortalCallable({ returnUrl });
+
+    // Return the portal URL
+    return result.data.url;
+  } catch (error) {
+    console.error('Error creating customer portal session:', error);
+    throw error;
+  }
+}
+
 

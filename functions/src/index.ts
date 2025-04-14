@@ -21,6 +21,7 @@ import * as createCheckoutHandler from './handlers/createCheckout';
 import * as getUserKeyHandler from './handlers/getUserKey';
 import { handleStripeWebhook } from './handlers/stripeWebhook';
 import { provisionNewUserApiKey as createUserApiKey } from './handlers/onUserCreate';
+import { createCustomerPortalSession } from './handlers/createCustomerPortal';
 
 // Initialize Admin SDK
 if (admin.apps.length === 0) {
@@ -166,31 +167,53 @@ export const provisionNewUserKey = onCall({
 
   try {
     const uid = request.auth.uid;
-    logger.info('Starting API key provisioning for user', { uid });
 
     // Get the user record
-    logger.info('Fetching user record', { uid });
     const userRecord = await admin.auth().getUser(uid);
-
-    // Check if user already has an API key
-    const userRef = admin.firestore().collection('users').doc(uid);
-    const userDoc = await userRef.get();
-    const userData = userDoc.exists ? userDoc.data() : null;
-
-    if (userData?.openRouterKey) {
-      logger.info('User already has an API key, returning success', { uid });
-      return { success: true };
-    }
 
     // Provision a new API key for the user
     logger.info('Calling createUserApiKey function', { uid });
     await createUserApiKey(userRecord);
-
     logger.info('Successfully provisioned API key for user', { uid });
     return { success: true };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error('Error in provisionNewUserKey', { error: errorMessage, auth: request.auth?.uid });
+    throw new HttpsError('internal', errorMessage);
+  }
+});
+
+/**
+ * Callable: createCustomerPortal
+ * Expects { returnUrl } in request.data
+ * Creates a Stripe customer portal session for managing subscriptions
+ */
+export const createCustomerPortal = onCall({
+  ...commonConfig,
+  cors: corsConfig,
+  secrets: [stripeSecretKey],
+  cpu: 1,  // Standard CPU allocation
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated.');
+  }
+
+  try {
+    const uid = request.auth.uid;
+    const { returnUrl } = request.data as { returnUrl: string };
+
+    // Validate input
+    if (!returnUrl) {
+      logger.warn('Invalid parameters in createCustomerPortal', { uid });
+      throw new HttpsError('invalid-argument', 'Missing required parameter: returnUrl');
+    }
+
+    // Create customer portal session
+    const result = await createCustomerPortalSession(uid, returnUrl);
+    return result;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error in createCustomerPortal', { error: errorMessage, auth: request.auth?.uid });
     throw new HttpsError('internal', errorMessage);
   }
 });

@@ -53,9 +53,9 @@
   * {
     @apply border-border selection:bg-[#66B3FF]/10 selection:text-[#66B3FF];
   }
-  
+
   body {
-    @apply bg-white text-[#333333] antialiased;
+    @apply bg-[#0A0C14] text-white antialiased;
     font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 
@@ -69,7 +69,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
