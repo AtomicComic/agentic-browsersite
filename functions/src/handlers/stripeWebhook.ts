@@ -273,18 +273,31 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
 }
 
 /**
- * Extract subscription period end date safely from Stripe subscription data
+ * Extract subscription period end date from Stripe subscription data
  */
 function getSubscriptionEndDate(subscription: Stripe.Subscription): number {
-  // Access the raw response data which includes metadata like current_period_end
-  const rawData = subscription as unknown as { current_period_end: number };
+  // For subscription objects, the current_period_end is in the items data
+  if (subscription.items &&
+      subscription.items.data &&
+      subscription.items.data.length > 0) {
 
-  if (!('current_period_end' in rawData)) {
-    throw new Error('Missing current_period_end in subscription data');
+    // Access the first subscription item
+    const item = subscription.items.data[0] as any;
+
+    // Check if current_period_end exists in the item
+    if (item.current_period_end) {
+      // Convert UNIX timestamp (seconds) to JavaScript timestamp (milliseconds)
+      return item.current_period_end * 1000;
+    }
   }
 
-  // Convert UNIX timestamp (seconds) to JavaScript timestamp (milliseconds)
-  return rawData.current_period_end * 1000;
+  // If we can't find it in the expected location, log a warning and use a fallback
+  logger.warn('Could not find current_period_end in subscription items, using fallback', {
+    subscriptionId: subscription.id
+  });
+
+  // Fallback: Use created date + 30 days (for monthly subscriptions)
+  return (subscription.created * 1000) + (30 * 24 * 60 * 60 * 1000);
 }
 
 // Modified handleStripeWebhook function in stripeWebhook.js
@@ -536,14 +549,42 @@ export async function handleStripeWebhook(req: WebhookRequest, res: WebhookRespo
             subscriptionId: (invoice as unknown as { subscription?: string }).subscription
           });
 
-          // In Stripe's API, invoice.subscription might be string ID or undefined
-          // Access it through type assertion and runtime check
-          const rawInvoice = invoice as unknown as { subscription?: string };
-          const subscriptionId = rawInvoice.subscription;
+          // Extract subscription ID from the invoice
+          // Based on the payload, we know exactly where to find it
+          let subscriptionId: string | undefined;
 
+          // Check in parent.subscription_details
+          const invoiceWithParent = invoice as any;
+          if (invoiceWithParent.parent &&
+              typeof invoiceWithParent.parent === 'object' &&
+              invoiceWithParent.parent.type === 'subscription_details' &&
+              invoiceWithParent.parent.subscription_details?.subscription) {
+            subscriptionId = invoiceWithParent.parent.subscription_details.subscription as string;
+            logger.info('Found subscription ID in parent.subscription_details', { subscriptionId });
+          }
+
+          // If not found, check in lines.data[0].parent.subscription_item_details
+          if (!subscriptionId &&
+              invoice.lines &&
+              invoice.lines.data &&
+              invoice.lines.data.length > 0) {
+            const line = invoice.lines.data[0] as any;
+            if (line.parent &&
+                typeof line.parent === 'object' &&
+                line.parent.type === 'subscription_item_details' &&
+                line.parent.subscription_item_details?.subscription) {
+              subscriptionId = line.parent.subscription_item_details.subscription as string;
+              logger.info('Found subscription ID in lines.data[0].parent.subscription_item_details', { subscriptionId });
+            }
+          }
+
+          // If there's no subscription ID, we'll just acknowledge the webhook
           if (!subscriptionId) {
-            logger.error('Missing subscription ID in invoice', { invoiceId: invoice.id });
-            res.status(400).json({ error: 'Missing subscription ID' });
+            logger.warn('Could not find subscription ID in invoice', { invoiceId: invoice.id });
+
+            // Instead of failing, we'll just acknowledge the webhook
+            // This prevents Stripe from retrying the webhook and filling up our logs
+            res.status(200).json({ received: true, warning: 'No subscription ID found' });
             return;
           }
 
@@ -551,8 +592,37 @@ export async function handleStripeWebhook(req: WebhookRequest, res: WebhookRespo
             // Retrieve subscription details safely
             const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-            // Safely extract expiration date
-            const expiresAt = getSubscriptionEndDate(subscription);
+            // Log the subscription details to help with debugging
+            // Use type assertion to access properties that might not be in the TypeScript type
+            const rawSubscription = subscription as unknown as {
+              id: string;
+              status: string;
+              current_period_end?: number;
+            };
+
+            logger.info('Retrieved subscription details', {
+              subscriptionId,
+              status: rawSubscription.status,
+              currentPeriodEnd: rawSubscription.current_period_end
+            });
+
+            // Safely extract expiration date with better error handling
+            let expiresAt: number;
+            try {
+              expiresAt = getSubscriptionEndDate(subscription);
+            } catch (error) {
+              // If we can't get the expiration date from the helper function,
+              // try to get it directly from the subscription object
+              // Use the rawSubscription object we created above
+              if (rawSubscription.current_period_end) {
+                expiresAt = rawSubscription.current_period_end * 1000; // Convert to milliseconds
+                logger.info('Using current_period_end directly', { expiresAt });
+              } else {
+                // If we still can't get it, use a default value (30 days from now)
+                expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+                logger.warn('Using default expiration date (30 days from now)', { expiresAt });
+              }
+            }
 
             const customerId = invoice.customer as string;
 
