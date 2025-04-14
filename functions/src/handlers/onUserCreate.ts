@@ -145,7 +145,8 @@ export async function provisionNewUserApiKey(user: admin.auth.UserRecord): Promi
       openRouterKey: keyData.key,
       oneTime: {
         openRouterCredits: initialCreditLimit,
-        openRouterCreditsRemaining: initialCreditLimit
+        openRouterCreditsRemaining: initialCreditLimit,
+        userCredits: Math.floor(initialCreditLimit * 1000) // 100 credits (10 cents * 1000)
       }
     });
 

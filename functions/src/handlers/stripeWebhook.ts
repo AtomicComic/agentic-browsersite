@@ -23,13 +23,13 @@ export const rawBodyMiddleware = (req: Request, res: WebhookResponse, next: () =
 // Credits allocated to OpenRouter (actual limit)
 const OPENROUTER_CREDITS: Record<string, number> = {
   // Subscription plans
-  'monthly-basic': 300,       // 1000 / 3.33
-  'monthly-pro': 600,         // 2000 / 3.33
-  'monthly-enterprise': 900,  // 3000 / 3.33
+  'monthly-basic': 1.0,        // 1000 credits = $1.00
+  'monthly-pro': 2.0,          // 2000 credits = $2.00
+  'monthly-enterprise': 3.0,   // 3000 credits = $3.00
   // One-time credit purchases
-  'credits-1500': 0.1,        // 1500 / 3.33
-  'credits-6000': 1800,       // 6000 / 3.33
-  'credits-15000': 4500,      // 15000 / 3.33
+  'credits-1500': 1.5,         // 1500 credits = $1.50
+  'credits-6000': 6.0,         // 6000 credits = $6.00
+  'credits-15000': 15.0,       // 15000 credits = $15.00
 };
 
 // Type-safe error handling helper
@@ -176,17 +176,17 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
       if (isSubscription) {
         // For subscription: update subscription credits
         updateData['subscription.openRouterCredits'] = addCredits;
-        updateData['subscription.userCredits'] = Math.floor(addCredits * 3.33);
+        updateData['subscription.userCredits'] = Math.floor(addCredits * 1000);
       } else {
         // For one-time: update one-time credits
         if (userData.oneTime?.openRouterCredits !== undefined) {
           // User already has credits in new format
           updateData['oneTime.openRouterCredits'] = oneTimePurchasedCredits + addCredits;
-          updateData['oneTime.userCredits'] = Math.floor((oneTimePurchasedCredits + addCredits) * 3.33);
+          updateData['oneTime.userCredits'] = Math.floor((oneTimePurchasedCredits + addCredits) * 1000);
         } else {
           // First time purchase
           updateData['oneTime.openRouterCredits'] = addCredits;
-          updateData['oneTime.userCredits'] = Math.floor(addCredits * 3.33);
+          updateData['oneTime.userCredits'] = Math.floor(addCredits * 1000);
         }
       }
 
@@ -234,7 +234,7 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
         keyUpdateData.subscription = {
           ...userData.subscription,
           openRouterCredits: addCredits,
-          userCredits: Math.floor(addCredits * 3.33),
+          userCredits: Math.floor(addCredits * 1000),
         };
       } else {
         // Update one-time credits
@@ -242,13 +242,13 @@ async function provisionOpenRouterKey(uid: string, addCredits: number, isSubscri
           // User already has credits
           keyUpdateData.oneTime = {
             openRouterCredits: oneTimePurchasedCredits + addCredits,
-            userCredits: Math.floor((oneTimePurchasedCredits + addCredits) * 3.33),
+            userCredits: Math.floor((oneTimePurchasedCredits + addCredits) * 1000),
           };
         } else {
           // First time purchase
           keyUpdateData.oneTime = {
             openRouterCredits: addCredits,
-            userCredits: Math.floor(addCredits * 3.33),
+            userCredits: Math.floor(addCredits * 1000),
           };
         }
       }

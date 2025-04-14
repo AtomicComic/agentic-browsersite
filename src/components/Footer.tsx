@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Instagram, Youtube, Twitter } from 'lucide-react';
 import Logo from '../assets/Logo';
 
@@ -34,10 +35,18 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-[#f0f0f0] mt-6 pt-6 text-center md:text-left">
-          <p className="text-[#333333]/40 text-sm font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']">
+        <div className="border-t border-[#f0f0f0] mt-6 pt-6 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-[#333333]/40 text-sm font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji'] mb-2 md:mb-0">
             © {currentYear} Agentic Browser. All rights reserved.
           </p>
+          <div className="flex gap-4">
+            <Link
+              to="/privacy-policy"
+              className="text-[#333333]/60 hover:text-[#66B3FF] text-sm transition-colors"
+            >
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

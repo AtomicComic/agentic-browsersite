@@ -105,20 +105,25 @@ export async function getUserOpenRouterKey(): Promise<{ apiKey: string; credits?
  */
 export async function provisionNewUserApiKey(): Promise<boolean> {
   try {
+    console.log('Starting API key provisioning process');
+
     // Create a callable function reference
     const provisionKeyCallable = httpsCallable<null, ProvisionKeyResponse>(
       functions,
       'provisionNewUserKey'
     );
 
+    console.log('Calling provisionNewUserKey function');
     // Call the function (no parameters needed)
     const result = await provisionKeyCallable();
 
+    console.log('API key provisioning result:', result.data);
     // Return success status
     return result.data.success;
   } catch (error) {
     console.error('Error provisioning new API key:', error);
-    throw error;
+    // Don't throw, just return false to avoid breaking the registration flow
+    return false;
   }
 }
 

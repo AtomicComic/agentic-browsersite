@@ -330,7 +330,7 @@ const Dashboard = () => {
                           <div className="bg-gray-900/80 px-4 py-2 rounded-lg border border-gray-700 inline-flex items-center">
                             <p className="text-3xl font-bold text-[#66B3FF]">
                               {openRouterCredits.credits.remaining !== null
-                                ? `${openRouterCredits.credits.remaining.toFixed(2)}`
+                                ? `${Math.floor(openRouterCredits.credits.remaining * 1000)}`
                                 : 'Unlimited'}
                             </p>
                             <span className="ml-2 text-gray-400 text-sm">credits remaining</span>

@@ -20,7 +20,7 @@ import { stripeSecretKey, stripeWebhookSecret, openRouterProvisioningKey } from 
 import * as createCheckoutHandler from './handlers/createCheckout';
 import * as getUserKeyHandler from './handlers/getUserKey';
 import { handleStripeWebhook } from './handlers/stripeWebhook';
-import { provisionNewUserApiKey } from './handlers/onUserCreate';
+import { provisionNewUserApiKey as createUserApiKey } from './handlers/onUserCreate';
 
 // Initialize Admin SDK
 if (admin.apps.length === 0) {
@@ -166,10 +166,25 @@ export const provisionNewUserKey = onCall({
 
   try {
     const uid = request.auth.uid;
+    logger.info('Starting API key provisioning for user', { uid });
+
+    // Get the user record
+    logger.info('Fetching user record', { uid });
     const userRecord = await admin.auth().getUser(uid);
 
+    // Check if user already has an API key
+    const userRef = admin.firestore().collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    const userData = userDoc.exists ? userDoc.data() : null;
+
+    if (userData?.openRouterKey) {
+      logger.info('User already has an API key, returning success', { uid });
+      return { success: true };
+    }
+
     // Provision a new API key for the user
-    await provisionNewUserApiKey(userRecord);
+    logger.info('Calling createUserApiKey function', { uid });
+    await createUserApiKey(userRecord);
 
     logger.info('Successfully provisioned API key for user', { uid });
     return { success: true };
