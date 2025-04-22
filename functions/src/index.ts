@@ -22,6 +22,7 @@ import * as getUserKeyHandler from './handlers/getUserKey';
 import { handleStripeWebhook } from './handlers/stripeWebhook';
 import { provisionNewUserApiKey as createUserApiKey } from './handlers/onUserCreate';
 import { createCustomerPortalSession } from './handlers/createCustomerPortal';
+import { subscribeToNewsletterHandler } from './handlers/subscribeNewsletter';
 
 // Initialize Admin SDK
 if (admin.apps.length === 0) {
@@ -218,4 +219,32 @@ export const createCustomerPortal = onCall({
   }
 });
 
+/**
+ * Callable: subscribeToNewsletter
+ * Expects { email } in request.data
+ * Subscribes a user to the newsletter and sends them an email with installation instructions
+ */
+export const subscribeToNewsletter = onCall({
+  ...commonConfig,
+  cors: corsConfig,
+  cpu: 1,  // Standard CPU allocation
+}, async (request) => {
+  try {
+    const { email } = request.data as { email: string };
+
+    // Validate input
+    if (!email) {
+      logger.warn('Invalid parameters in subscribeToNewsletter');
+      throw new HttpsError('invalid-argument', 'Missing required parameter: email');
+    }
+
+    // Subscribe to newsletter and send email
+    const result = await subscribeToNewsletterHandler(email);
+    return result;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error in subscribeToNewsletter', { error: errorMessage });
+    throw new HttpsError('internal', errorMessage);
+  }
+});
 

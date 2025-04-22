@@ -15,6 +15,11 @@ interface ProvisionKeyResponse {
   success: boolean;
 }
 
+interface NewsletterSubscriptionResponse {
+  success: boolean;
+  message?: string;
+}
+
 /**
  * Interface for OpenRouter credit information
  */
@@ -152,4 +157,28 @@ export async function createCustomerPortalSession(returnUrl: string): Promise<st
   }
 }
 
+/**
+ * Subscribes a user to the newsletter and sends them an email with installation instructions
+ *
+ * @param email - The email address to subscribe
+ * @returns Promise with success status
+ */
+export async function subscribeToNewsletter(email: string): Promise<boolean> {
+  try {
+    // Create a callable function reference
+    const subscribeCallable = httpsCallable<
+      { email: string },
+      NewsletterSubscriptionResponse
+    >(functions, 'subscribeToNewsletter');
+
+    // Call the function with the email
+    const result = await subscribeCallable({ email });
+
+    // Return success status
+    return result.data.success;
+  } catch (error) {
+    console.error('Error subscribing to newsletter:', error);
+    throw error;
+  }
+}
 

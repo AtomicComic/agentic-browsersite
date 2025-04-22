@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import landingPageBackground from '../assets/landingpage_background.mp4';
+import NewsletterSignup from './NewsletterSignup';
 
 const Hero = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -36,7 +37,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
+    <section className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden pt-16 md:pt-0">
       {/* Video Background */}
       <div className="absolute inset-0 w-full h-full z-0">
         <div className="relative w-full h-full video-container">
@@ -64,22 +65,30 @@ const Hero = () => {
           animate="visible"
         >
           <motion.h1
-            className="text-6xl md:text-7xl lg:text-8xl font-light mb-10 text-white leading-tight tracking-tight font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light mb-6 sm:mb-10 text-white leading-[1.2] sm:leading-tight tracking-tight font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
             variants={itemVariants}
           >
             Agentic AI Automation Directly in Your Browser
           </motion.h1>
 
           <motion.p
-            className="text-white/90 text-xl max-w-2xl mx-auto mb-12 font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
+            className="text-white/90 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-12 font-['ui-sans-serif',system-ui,sans-serif,'Apple_Color_Emoji','Segoe_UI_Emoji','Segoe_UI_Symbol','Noto_Color_Emoji']"
             variants={itemVariants}
           >
             Agentic browser transforms your workflow by enabling AI to autonomously control your browser and execute tasks effortlessly. Built for seamless productivity through intelligent automation, it empowers you to focus on what truly matters.
           </motion.p>
 
+          {/* Newsletter Signup Form */}
+          <motion.div
+            className="mb-16"
+            variants={itemVariants}
+          >
+            <NewsletterSignup />
+          </motion.div>
+
           {/* Down arrow - with more vertical spacing and proper centering */}
           <motion.div
-            className="mt-32 flex justify-center cursor-pointer"
+            className="mt-16 flex justify-center cursor-pointer"
             initial={{ y: 0 }}
             animate={{ y: [0, 12, 0] }}
             transition={{
